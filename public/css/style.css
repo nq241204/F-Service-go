@@ -1,0 +1,54 @@
+/* public/css/style.css */
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #f4f6f9;
+    margin: 0;
+    padding-top: 56px; /* Để tránh navbar che nội dung */
+}
+
+.navbar {
+    background: #007bff !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: fixed; /* Giữ navbar ở trên cùng */
+    width: 100%;
+    top: 0;
+    z-index: 1030;
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary {
+    background: #007bff;
+    border: none;
+    transition: background-color 0.3s;
+}
+.btn-primary:hover {
+    background: #0056b3;
+}
+
+.btn-success {
+    background: #28a745;
+    border: none;
+    transition: background-color 0.3s;
+}
+.btn-success:hover {
+    background: #1e7e34;
+}
+
+.alert {
+    border-radius: 8px;
+    margin-bottom: 15px;
+    /* Đảm bảo alert không bị che */
+    position: relative;
+    z-index: 1000;
+}
+
+.footer {
+    background: #343a40;
+    color: white;
+    margin-top: 50px;
+}

@@ -1,0 +1,22 @@
+router.get('/user/request', authMiddleware(['user']), (req, res) => {
+  res.render('user/request');
+});
+
+router.post('/user/request', authMiddleware(['user']), async (req, res) => {
+  const { title, description, price } = req.body;
+  try {
+    const service = new Service({
+      title,
+      description,
+      user: req.session.user.id,
+      price: parseInt(price) || 0,
+      status: 'pending',
+    });
+    await service.save();
+    req.flash('success', 'Tạo yêu cầu thành công!');
+    res.redirect('/dashboard/user');
+  } catch (err) {
+    req.flash('error', 'Lỗi khi tạo yêu cầu');
+    res.redirect('/user/request');
+  }
+});

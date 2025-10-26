@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | F-Service</title>
+    <!-- Tải Tailwind CSS CDN (Giả định bạn chưa dùng PostCSS) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7fafc; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Header/Navigation Bar -->
+    <nav class="bg-indigo-600 p-4 shadow-md sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="/" class="text-white text-2xl font-bold tracking-wider">F-Service</a>
+            <div class="flex items-center space-x-4">
+                <% if (user) { %>
+                    <span class="text-white text-sm">Chào, <%= user.ten %> (<%= user.role.toUpperCase() %>)</span>
+                    <a href="/<%= user.role %>/dashboard" class="text-white hover:text-indigo-200 transition">Dashboard</a>
+                    <a href="/logout" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold transition shadow-md">Đăng Xuất</a>
+                <% } else { %>
+                    <a href="/login" class="text-white hover:text-indigo-200 transition">Đăng nhập</a>
+                    <a href="/register" class="bg-white text-indigo-600 px-3 py-1 rounded-full text-sm font-semibold transition shadow-md hover:bg-gray-100">Đăng ký</a>
+                <% } %>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8">
+        <!-- Flash Messages -->
+        <% if (success_msg.length > 0) { %>
+            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-md shadow-sm" role="alert">
+                <p><%= success_msg %></p>
+            </div>
+        <% } %>
+        <% if (error_msg.length > 0) { %>
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-md shadow-sm" role="alert">
+                <p><%= error_msg %></p>
+            </div>
+        <% } %>
+
+        <%- body %>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white p-4 mt-auto">
+        <div class="max-w-7xl mx-auto text-center text-sm">
+            &copy; 2025 F-Service. Xây dựng bởi [Tên dự án của bạn].
+        </div>
+    </footer>
+</body>
+</html>
