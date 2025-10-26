@@ -1,0 +1,24 @@
+<%- include('../layout', { body: renderBody() }) %>
+<% function renderBody() { %>
+  <div class="container mx-auto px-4 py-8">
+    <h2 class="text-3xl font-bold mb-6">Dashboard Thành Viên</h2>
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h3>Số dư: <%= balance.toLocaleString() %> VNĐ</h3>
+      <h4>Ủy thác khả dụng:</h4>
+      <% availableServices.forEach(service => { %>
+        <div>
+          <p><%= service.TieuDe %> - <%= service.GiaTri.toLocaleString() %> VNĐ</p>
+          <form action="/api/member/accept/<%= service._id %>" method="POST">
+            <button type="submit">Chấp nhận</button>
+          </form>
+        </div>
+      <% }) %>
+      <h4>Ủy thác đã nhận:</h4>
+      <% acceptedServices.forEach(service => { %>
+        <div>
+          <p><%= service.TieuDe %> - <%= service.TrangThai %></p>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+<% } %>

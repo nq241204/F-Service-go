@@ -1,80 +1,134 @@
 // server.js
+process.env.NODE_NO_WARNINGS = 1; // Disable deprecation warnings
 const express = require('express');
-const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const flash = require('connect-flash');
-const expressLayouts = require('express-ejs-layouts');
-
-// Load environment variables
-dotenv.config();
-
-// Kết nối Database
+const path = require('path');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
 const connectDB = require('./config/db');
-connectDB();
 
 const app = express();
 
-// --- Cấu hình Middleware ---
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Body parser
-app.use(express.json()); // Cho API requests (JSON body)
-app.use(express.urlencoded({ extended: true })); // Cho Form POST requests (URL-encoded body)
-
-// Cấu hình EJS
-app.set('view engine', 'ejs');
-app.set('views', 'views'); // Đảm bảo thư mục views đúng
-app.use(expressLayouts);
-app.set('layout', './layout'); // Đặt layout.ejs là layout mặc định
-
-// Cấu hình thư mục Public (CSS, JS, images)
-app.use(express.static('public'));
-
-// Cấu hình Session (Cần thiết cho req.session.user và flash messages)
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'supersecretkey', // Thay thế bằng key mạnh hơn
-    resave: false,
-    saveUninitialized: true,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 giờ
+// Security middleware
+const helmet = require('helmet');
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
 }));
 
-// Cấu hình Flash Messages
+// Session Configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your_session_secret',
+    resave: false,
+    saveUninitialized: true,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/f-service',
+        collection: 'sessions'
+    }),
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Flash messages
 app.use(flash());
 
-// Middleware cho biến cục bộ (locals)
+// Global variables middleware
 app.use((req, res, next) => {
-    // Truyền flash messages và user session vào tất cả các view
-    res.locals.success_msg = req.flash('success');
-    res.locals.error_msg = req.flash('error');
-    res.locals.error = req.flash('error'); // Dùng cho Passport/Auth lỗi chung
-    res.locals.user = req.session.user || null; // Dùng để kiểm tra user đã đăng nhập chưa
+    res.locals.success_msg = req.flash('success_msg');
+    res.locals.error_msg = req.flash('error_msg');
+    res.locals.error = req.flash('error');
+    res.locals.user = req.user || null;
     next();
 });
 
+// View Engine Setup
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
-// --- Định tuyến (Routes) ---
-
-// Public Routes (Web access)
-app.use('/', require('./routes/web')); 
-
-// API Routes
-app.use('/api/auth', require('./routes/auth')); 
-app.use('/api/user', require('./routes/user')); 
-app.use('/api/member', require('./routes/member'));
-// app.use('/api/admin', require('./routes/admin')); // Tạm thời chưa cần
-
-// Web Routes (Chuyên biệt theo vai trò)
-app.use('/user', require('./routes/user'));
-app.use('/member', require('./routes/member')); 
-// app.use('/admin', require('./routes/admin')); // Tạm thời chưa cần
-
-
-// --- Xử lý 404 ---
-app.use((req, res, next) => {
-    res.status(404).render('404', { title: '404 - Không tìm thấy' });
+// Rate Limiter
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
 });
+app.use('/api', limiter);
 
+// Khởi tạo kết nối MongoDB và routes
+async function initializeApp() {
+    try {
+        // Kết nối MongoDB trước
+        await connectDB();
 
-const PORT = process.env.PORT || 5000;
+        // Đăng ký các routes
+        app.use('/api/auth', require('./routes/auth'));
+        app.use('/api/services', require('./routes/services'));
+        app.use('/api/wallet', require('./routes/wallet'));
+        app.use('/auth', require('./routes/auth'));
+        app.use('/user', require('./routes/user'));
+        app.use('/admin', require('./routes/admin'));
+        app.use('/service', require('./routes/service'));
+        app.use('/api/monitor', require('./routes/monitoring'));
+        app.use('/member', require('./routes/member'));
+        app.use('/', require('./routes/web'));
 
-app.listen(PORT, console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`));
+        // Error handlers
+        app.use((req, res, next) => {
+            res.status(404).render('404', {
+                title: 'Không tìm thấy trang',
+                user: req.user
+            });
+        });
+
+        // Global error handler
+        app.use((err, req, res, next) => {
+            console.error(err.stack);
+            
+            if (req.xhr || req.path.startsWith('/api')) {
+                return res.status(err.status || 500).json({
+                    error: process.env.NODE_ENV === 'development' ? err.message : 'Đã xảy ra lỗi',
+                    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+                });
+            }
+
+            res.status(err.status || 500).render('error', {
+                title: 'Lỗi',
+                message: process.env.NODE_ENV === 'development' ? err.message : 'Đã xảy ra lỗi',
+                error: process.env.NODE_ENV === 'development' ? err : {},
+                user: req.user
+            });
+        });
+
+        // Khởi động server
+        const PORT = process.env.PORT || 5000;
+        const server = app.listen(PORT, () => console.log(`Server đang chạy trên cổng ${PORT}`));
+
+        // Xử lý tắt server
+        process.on('SIGTERM', () => {
+            console.log('Nhận tín hiệu SIGTERM. Đang đóng server...');
+            server.close(() => {
+                console.log('Server đã đóng.');
+                mongoose.connection.close(false, () => {
+                    console.log('MongoDB connection đã đóng.');
+                    process.exit(0);
+                });
+            });
+        });
+
+    } catch (error) {
+        console.error('Không thể khởi động server:', error);
+        process.exit(1);
+    }
+}
+
+// Khởi động ứng dụng
+initializeApp();

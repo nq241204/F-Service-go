@@ -1,32 +1,50 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs'); // Đảm bảo import bcryptjs
+const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
-    Ten: {
+    name: {
         type: String,
-        required: true,
+        required: [true, 'Tên không được để trống'],
         trim: true,
+        minlength: [2, 'Tên phải có ít nhất 2 ký tự']
     },
-    Email: {
+    email: {
         type: String,
-        required: true,
+        required: [true, 'Email không được để trống'],
         unique: true,
         lowercase: true,
+        validate: {
+            validator: function(v) {
+                return /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(v);
+            },
+            message: 'Email không hợp lệ'
+        }
     },
-    MatKhau: {
+    password: {
         type: String,
-        required: true,
-        select: false, // Không trả về mật khẩu khi tìm kiếm mặc định
+        required: [true, 'Mật khẩu không được để trống'],
+        minlength: [6, 'Mật khẩu phải có ít nhất 6 ký tự'],
+        select: false
     },
-    Role: {
+    role: {
         type: String,
-        enum: ['user', 'member', 'admin'],
-        default: 'user',
+        enum: {
+            values: ['user', 'member', 'admin'],
+            message: 'Role không hợp lệ'
+        },
+        default: 'user'
     },
-    TrangThai: {
+    status: {
         type: String,
-        enum: ['active', 'inactive', 'banned'],
-        default: 'active',
+        enum: {
+            values: ['active', 'inactive', 'banned'],
+            message: 'Trạng thái không hợp lệ'
+        },
+        default: 'active'
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
     },
     // Liên kết với Ví giao dịch (ViGiaoDich Model)
     ViGiaoDich: {

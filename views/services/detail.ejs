@@ -1,0 +1,25 @@
+<%- include('../layout', { body: renderBody() }) %>
+<% function renderBody() { %>
+  <div class="container mx-auto px-4 py-8">
+    <h2 class="text-3xl font-bold mb-6">Chi Tiết Ủy Thác</h2>
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <% if (commission) { %>
+        <h3 class="text-xl font-semibold mb-4">Tên Dịch Vụ: <%= commission.DichVuId.TenDichVu %></h3>
+        <p class="mb-2"><strong>Giá Thỏa Thuận:</strong> <%= commission.GiaThoaThuan.toLocaleString() %> VNĐ</p>
+        <p class="mb-2"><strong>Trạng Thái:</strong>
+          <span class="badge bg-<%= commission.TrangThai === 'Moi' ? 'warning' :
+            commission.TrangThai === 'DangThucHien' ? 'info' :
+            commission.TrangThai === 'DaHoanThanh' ? 'success' : 'danger' %>">
+            <%= commission.TrangThai %>
+          </span>
+        </p>
+        <p class="mb-2"><strong>Ngày Tạo:</strong> <%= new Date(commission.NgayTao).toLocaleString() %></p>
+        <% if (commission.TrangThai === 'DaHoanThanh') { %>
+          <button type="button" class="btn btn-sm btn-success mt-4" disabled>Chờ Xác Nhận</button>
+        <% } %>
+      <% } else { %>
+        <p class="text-center text-muted">Không tìm thấy ủy thác.</p>
+      <% } %>
+    </div>
+  </div>
+<% } %>

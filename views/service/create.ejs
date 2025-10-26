@@ -1,0 +1,81 @@
+<%- include('../partials/head', { title: 'Tạo Dịch Vụ Mới' }) %>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h4 class="card-title mb-0">Tạo Dịch Vụ Mới</h4>
+                </div>
+                <div class="card-body">
+                    <% if (locals.error) { %>
+                        <div class="alert alert-danger">
+                            <%= error %>
+                        </div>
+                    <% } %>
+                    
+                    <form action="/service/create" method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="TenDichVu" class="form-label">Tên Dịch Vụ</label>
+                            <input type="text" class="form-control" id="TenDichVu" name="TenDichVu" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="MoTa" class="form-label">Mô Tả</label>
+                            <textarea class="form-control" id="MoTa" name="MoTa" rows="3" required></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="GiaTien" class="form-label">Giá Tiền (VND)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="GiaTien" name="GiaTien" min="0" required>
+                                <span class="input-group-text">VND</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="LoaiDichVu" class="form-label">Loại Dịch Vụ</label>
+                            <select class="form-select" id="LoaiDichVu" name="LoaiDichVu" required>
+                                <option value="">Chọn loại dịch vụ</option>
+                                <option value="basic">Cơ bản</option>
+                                <option value="premium">Premium</option>
+                                <option value="vip">VIP</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="HinhAnh" class="form-label">Hình Ảnh</label>
+                            <input type="file" class="form-control" id="HinhAnh" name="HinhAnh" accept="image/*">
+                            <div class="form-text">Tối đa 5MB. Chấp nhận định dạng: JPG, PNG</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="ThoiGianHoanThanh" class="form-label">Thời Gian Hoàn Thành (giờ)</label>
+                            <input type="number" class="form-control" id="ThoiGianHoanThanh" name="ThoiGianHoanThanh" min="1" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="TrangThai" name="TrangThai" value="active">
+                                <label class="form-check-label" for="TrangThai">
+                                    Kích hoạt dịch vụ ngay
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus-circle me-2"></i>Tạo Dịch Vụ
+                            </button>
+                            <a href="/services" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Quay Lại
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

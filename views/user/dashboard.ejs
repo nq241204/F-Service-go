@@ -1,76 +1,75 @@
-<!-- views/user/dashboard.ejs -->
-<h2 class="fw-bold mb-4">Dashboard Người dùng - Xin chào, <%= user.ten || user.email %></h2>
-<div class="row">
-  <!-- Card Số dư -->
-  <div class="col-md-4 mb-4">
-    <div class="card p-4 text-center bg-white h-100">
-      <i class="fas fa-wallet fa-2x text-primary mb-2"></i>
-      <h5 class="card-title">Số dư ví hiện tại</h5>
-      <!-- LƯU Ý: Phải truyền biến 'balance' từ Controller, vì user trong session không có sẵn số dư -->
-      <h3 class="fw-bold text-success"><%= locals.balance ? balance.toLocaleString() : 'Đang tải...' %> VNĐ</h3>
-      <a href="/user/wallet" class="btn btn-primary mt-2">Nạp/Rút tiền</a>
+<%- include('../layout', { body: renderBody() }) %>
+<% function renderBody() { %>
+  <div class="container mx-auto px-4 py-8">
+    <h2 class="fw-bold mb-4">Dashboard Người dùng - Xin chào, <%= user.Ten || user.Email %></h2>
+    <div class="row">
+      <!-- Card Số dư -->
+      <div class="col-md-4 mb-4">
+        <div class="card p-4 text-center bg-white h-100">
+          <i class="fas fa-wallet fa-2x text-primary mb-2"></i>
+          <h5 class="card-title">Số dư ví hiện tại</h5>
+          <h3 class="fw-bold text-success"><%= locals.wallet ? wallet.SoDuHienTai.toLocaleString() : 'Đang tải...' %> VNĐ</h3>
+          <a href="/user/wallet" class="btn btn-primary mt-2">Nạp/Rút tiền</a>
+        </div>
+      </div>
+      <!-- Card Ủy thác đang chờ -->
+      <div class="col-md-4 mb-4">
+        <div class="card p-4 text-center bg-white h-100">
+          <i class="fas fa-hourglass-half fa-2x text-warning mb-2"></i>
+          <h5 class="card-title">Ủy thác đang chờ</h5>
+          <h3 class="fw-bold text-warning"><%= locals.pendingCount || 0 %></h3>
+          <a href="/user/commissions?status=pending" class="btn btn-secondary mt-2">Xem chi tiết</a>
+        </div>
+      </div>
+      <!-- Card Tạo mới -->
+      <div class="col-md-4 mb-4">
+        <div class="card p-4 text-center bg-white h-100">
+          <i class="fas fa-plus-circle fa-2x text-success mb-2"></i>
+          <h5 class="card-title">Tạo mới Ủy thác</h5>
+          <p class="card-text text-muted">Bạn cần giúp đỡ việc gì?</p>
+          <a href="/service/create" class="btn btn-success mt-auto">Tạo yêu cầu mới</a>
+        </div>
+      </div>
     </div>
-  </div>
-  
-  <!-- Card Ủy thác đang chờ -->
-  <div class="col-md-4 mb-4">
-    <div class="card p-4 text-center bg-white h-100">
-      <i class="fas fa-hourglass-half fa-2x text-warning mb-2"></i>
-      <h5 class="card-title">Ủy thác đang chờ</h5>
-      <h3 class="fw-bold text-warning"><%= locals.pendingCount || 0 %></h3>
-      <a href="/user/commissions?status=pending" class="btn btn-secondary mt-2">Xem chi tiết</a>
-    </div>
-  </div>
-
-  <!-- Card Tạo mới -->
-  <div class="col-md-4 mb-4">
-    <div class="card p-4 text-center bg-white h-100">
-      <i class="fas fa-plus-circle fa-2x text-success mb-2"></i>
-      <h5 class="card-title">Tạo mới Ủy thác</h5>
-      <p class="card-text text-muted">Bạn cần giúp đỡ việc gì?</p>
-      <a href="/service/create" class="btn btn-success mt-auto">Tạo yêu cầu mới</a>
-    </div>
-  </div>
-</div>
-
-<h3 class="mt-4 mb-3 fw-semibold">Danh sách các yêu cầu gần đây</h3>
-<div class="table-responsive">
-    <table class="table table-hover bg-white card shadow-sm">
+    <h3 class="mt-4 mb-3 fw-semibold">Danh sách các ủy thác gần đây</h3>
+    <div class="table-responsive">
+      <table class="table table-hover bg-white card shadow-sm">
         <thead class="bg-light">
-            <tr>
-                <th>Tiêu đề</th>
-                <th>Giá trị</th>
-                <th>Trạng thái</th>
-                <th>Hành động</th>
-            </tr>
+          <tr>
+            <th>Tên Dịch Vụ</th>
+            <th>Giá Thỏa Thuận</th>
+            <th>Trạng Thái</th>
+            <th>Hành Động</th>
+          </tr>
         </thead>
         <tbody>
-            <% if (locals.services && services.length > 0) { %>
-                <% services.forEach(s => { %>
-                    <tr>
-                        <td class="fw-medium"><%= s.TieuDe %></td>
-                        <td><%= s.GiaTri.toLocaleString() %> VNĐ</td>
-                        <td>
-                            <span class="badge bg-<%= s.TrangThai === 'pending' ? 'warning' : 
-                                                          s.TrangThai === 'accepted' ? 'info' : 
-                                                          s.TrangThai === 'completed' ? 'success' : 'danger' %>">
-                                <%= s.TrangThai %>
-                            </span>
-                        </td>
-                        <td>
-                            <!-- Sử dụng route /service/:id để xem chi tiết -->
-                            <a href="/service/<%= s._id %>" class="btn btn-sm btn-outline-primary">Chi tiết</a>
-                            <% if (s.TrangThai === 'completed') { %>
-                              <button type="button" class="btn btn-sm btn-success ms-2" disabled>Chờ xác nhận</button>
-                            <% } %>
-                        </td>
-                    </tr>
-                <% }) %>
-            <% } else { %>
-                <tr>
-                    <td colspan="4" class="text-center text-muted">Chưa có yêu cầu ủy thác nào được tạo.</td>
-                </tr>
-            <% } %>
+          <% if (locals.commissions && commissions.length > 0) { %>
+            <% commissions.forEach(c => { %>
+              <tr>
+                <td class="fw-medium"><%= c.DichVuId.TenDichVu %></td>
+                <td><%= c.GiaThoaThuan.toLocaleString() %> VNĐ</td>
+                <td>
+                  <span class="badge bg-<%= c.TrangThai === 'Moi' ? 'warning' :
+                    c.TrangThai === 'DangThucHien' ? 'info' :
+                    c.TrangThai === 'DaHoanThanh' ? 'success' : 'danger' %>">
+                    <%= c.TrangThai %>
+                  </span>
+                </td>
+                <td>
+                  <a href="/service/<%= c._id %>" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                  <% if (c.TrangThai === 'DaHoanThanh') { %>
+                    <button type="button" class="btn btn-sm btn-success ms-2" disabled>Chờ xác nhận</button>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="4" class="text-center text-muted">Chưa có ủy thác nào được tạo.</td>
+            </tr>
+          <% } %>
         </tbody>
-    </table>
-</div>
+      </table>
+    </div>
+  </div>
+<% } %>

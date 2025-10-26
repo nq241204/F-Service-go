@@ -1,7 +1,7 @@
 // routes/member.js
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/authMiddleware');
+const { authMiddleware } = require('../middleware/authMiddleware');
 const memberController = require('../controllers/memberController');
 const walletController = require('../controllers/walletController');
 const transactionController = require('../controllers/transactionController');
@@ -9,24 +9,15 @@ const transactionController = require('../controllers/transactionController');
 // Middleware chung cho Member (rút gọn)
 const isMember = authMiddleware(['member']);
 
-// --- API ROUTES ---
+// Dashboard routes
+router.get('/dashboard', isMember, memberController.renderDashboard);
+router.get('/profile', isMember, memberController.renderProfile);
 
-// @route   GET /api/member/profile
-// @desc    Lấy thông tin profile Member
-router.get('/profile', isMember, memberController.getMemberProfile);
-
-// @route   PUT /api/member/profile
-// @desc    Cập nhật thông tin profile Member
-// **Route này đã được fix, không còn lỗi [object Undefined]**
-router.put('/profile', isMember, memberController.updateProfile); 
-
-// @route   GET /api/member/wallet/balance (Dùng chung Wallet Controller)
-// @desc    Lấy số dư ví
-router.get('/wallet/balance', isMember, walletController.getBalance);
-
-// @route   POST /api/member/accept/:serviceId
-// @desc    Member chấp nhận một ủy thác đang chờ
-router.post('/accept/:serviceId', isMember, memberController.acceptService);
+// API routes
+router.get('/api/profile', isMember, memberController.getMemberProfile);
+router.put('/api/profile', isMember, memberController.updateProfile);
+router.get('/api/wallet/balance', isMember, walletController.getBalance);
+router.post('/api/service/accept/:serviceId', isMember, memberController.acceptService);
 
 // @route   POST /api/commission/settle/:serviceId
 // @desc    API Thanh toán Ủy thác (sẽ được Admin/Hệ thống gọi)

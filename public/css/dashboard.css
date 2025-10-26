@@ -1,0 +1,108 @@
+/* Dashboard specific styles */
+.dashboard-header {
+    background: white;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 40, 50, 0.15);
+}
+
+.dashboard-header h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 40, 50, 0.15);
+}
+
+.stat-card .stat-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+.stat-card .stat-change {
+    font-size: 0.875rem;
+    color: #059669;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stat-card .stat-change.negative {
+    color: #dc2626;
+}
+
+.transactions-list {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 40, 50, 0.15);
+    overflow: hidden;
+}
+
+.transactions-list .table {
+    margin: 0;
+}
+
+.transactions-list th {
+    background: #f9fafb;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: #6b7280;
+    padding: 1rem 1.5rem;
+}
+
+.transactions-list td {
+    padding: 1rem 1.5rem;
+    vertical-align: middle;
+}
+
+.transaction-amount {
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 600;
+}
+
+.transaction-amount.positive {
+    color: #059669;
+}
+
+.transaction-amount.negative {
+    color: #dc2626;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .transactions-list {
+        overflow-x: auto;
+    }
+}

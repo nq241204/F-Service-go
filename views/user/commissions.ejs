@@ -1,0 +1,45 @@
+<%- include('../layout', { body: renderBody() }) %>
+<% function renderBody() { %>
+  <div class="container mx-auto px-4 py-8">
+    <h2 class="fw-bold mb-4">Ủy Thác Của Tôi</h2>
+    <div class="table-responsive">
+      <table class="table table-hover bg-white card shadow-sm">
+        <thead class="bg-light">
+          <tr>
+            <th>Tên Dịch Vụ</th>
+            <th>Giá Thỏa Thuận</th>
+            <th>Trạng Thái</th>
+            <th>Hành Động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (commissions && commissions.length > 0) { %>
+            <% commissions.forEach(c => { %>
+              <tr>
+                <td class="fw-medium"><%= c.DichVuId.TenDichVu %></td>
+                <td><%= c.GiaThoaThuan.toLocaleString() %> VNĐ</td>
+                <td>
+                  <span class="badge bg-<%= c.TrangThai === 'Moi' ? 'warning' :
+                    c.TrangThai === 'DangThucHien' ? 'info' :
+                    c.TrangThai === 'DaHoanThanh' ? 'success' : 'danger' %>">
+                    <%= c.TrangThai %>
+                  </span>
+                </td>
+                <td>
+                  <a href="/service/<%= c._id %>" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                  <% if (c.TrangThai === 'DaHoanThanh') { %>
+                    <button type="button" class="btn btn-sm btn-success ms-2" disabled>Chờ xác nhận</button>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="4" class="text-center text-muted">Chưa có ủy thác nào.</td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>

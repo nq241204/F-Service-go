@@ -1,0 +1,24 @@
+<%- include('../layout', { body: renderBody() }) %>
+<% function renderBody() { %>
+  <div class="container mx-auto px-4 py-8">
+    <h2 class="text-3xl font-bold mb-6">Admin Dashboard</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-lg font-semibold">Tổng Users</h3>
+        <p class="text-2xl text-indigo-600"><%= stats.totalUsers || 0 %></p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-lg font-semibold">Tổng Members</h3>
+        <p class="text-2xl text-indigo-600"><%= stats.totalMembers || 0 %></p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-lg font-semibold">Tổng Dịch Vụ</h3>
+        <p class="text-2xl text-indigo-600"><%= stats.totalServices || 0 %></p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <h3 class="text-lg font-semibold">Tổng Giao Dịch</h3>
+        <p class="text-2xl text-indigo-600"><%= stats.totalTransactions || 0 %></p>
+      </div>
+    </div>
+  </div>
+<% } %>

@@ -1,26 +1,24 @@
 // seed.js
-require('dotenv').config(); 
+require('dotenv').config();
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
-// === Import Models ĐÃ ĐỒNG BỘ ===
+// Import models
 const User = require('./models/User');
 const Member = require('./models/Member');
-const DichVu = require('./models/DichVu'); // Dùng DichVu thay vì Service
-const ViGiaoDich = require('./models/ViGiaoDich'); 
-const GiaoDich = require('./models/GiaoDich'); 
-const UyThac = require('./models/UyThac'); 
-// ================================
+const DichVu = require('./models/DichVu');
+const ViGiaoDich = require('./models/ViGiaoDich');
+const GiaoDich = require('./models/GiaoDich');
+const UyThac = require('./models/UyThac');
 
 const seedData = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
+        const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/f-service';
+        await mongoose.connect(mongoUri, {
+            // mongoose v7+ no longer needs useNewUrlParser/useUnifiedTopology options
         });
         console.log('Kết nối DB thành công.');
 
-        // Xóa dữ liệu cũ (Cần xóa hết các bảng liên quan)
+        // Xóa dữ liệu cũ
         await User.deleteMany({});
         await Member.deleteMany({});
         await DichVu.deleteMany({});
@@ -30,50 +28,33 @@ const seedData = async () => {
 
         console.log('Đã xóa dữ liệu cũ.');
 
-        // === 1. TẠO VÍ HỆ THỐNG (Rất quan trọng cho giao dịch) ===
-        const systemWallet = await ViGiaoDich.create({
-            LoaiVi: 'System',
-            ChuSoHuu: null, // Không liên kết với bất kỳ User nào
-            SoDuHienTai: 0,
-            TenVi: 'Ví Hệ thống (Phí dịch vụ)'
-        });
-        console.log(`Đã tạo Ví Hệ thống với ID: ${systemWallet._id}`);
+        // Tạo users (mật khẩu plain sẽ được hash bởi pre-save hook trong model)
+        const adminUser = await User.create({ Ten: 'Admin', Email: 'admin@fservice.com', MatKhau: '123456', Role: 'admin' });
+        const normalUser = await User.create({ Ten: 'Test User', Email: 'user@fservice.com', MatKhau: '123456', Role: 'user' });
+        const memberUser = await User.create({ Ten: 'Test Member', Email: 'member@fservice.com', MatKhau: '123456', Role: 'member' });
 
-        // === 2. TẠO USER VÀ VÍ (Admin, User, Member) ===
-        const hashedPassword = await bcrypt.hash('123456', 10);
-        
-        // ADMIN
-        const adminUser = await User.create({ Ten: 'Admin', Email: 'admin@fservice.com', MatKhau: hashedPassword, Role: 'admin' });
-        const adminWallet = await ViGiaoDich.create({ LoaiVi: 'Admin', ChuSoHuu: adminUser._id, SoDuHienTai: 5000000 });
-        adminUser.ViGiaoDich = adminWallet._id;
-        await adminUser.save();
+        // Tạo ví cho users (LoaiVi 'User' dùng ChuSoHuu = User._id)
+        const adminWallet = await ViGiaoDich.create({ LoaiVi: 'User', ChuSoHuu: adminUser._id, SoDuHienTai: 5000000 });
+        adminUser.ViGiaoDich = adminWallet._id; await adminUser.save();
 
-        // USER
-        const normalUser = await User.create({ Ten: 'Test User', Email: 'user@fservice.com', MatKhau: hashedPassword, Role: 'user' });
         const userWallet = await ViGiaoDich.create({ LoaiVi: 'User', ChuSoHuu: normalUser._id, SoDuHienTai: 1000000 });
-        normalUser.ViGiaoDich = userWallet._id;
-        await normalUser.save();
-        
-        // MEMBER
-        const memberUser = await User.create({ Ten: 'Test Member', Email: 'member@fservice.com', MatKhau: hashedPassword, Role: 'member' });
-        const memberWallet = await ViGiaoDich.create({ LoaiVi: 'Member', ChuSoHuu: memberUser._id, SoDuHienTai: 0 });
-        memberUser.ViGiaoDich = memberWallet._id;
-        await memberUser.save();
-        
-        // Tạo hồ sơ Member
-        const memberProfile = await Member.create({
-            UserId: memberUser._id,
-            Ten: memberUser.Ten,
-            CapBac: 'Bronze',
-            LinhVuc: 'Lập trình Web'
-        });
+        normalUser.ViGiaoDich = userWallet._id; await normalUser.save();
 
-        // === 3. TẠO DỊCH VỤ MẪU (DichVu) ===
+        const memberWallet = await ViGiaoDich.create({ LoaiVi: 'User', ChuSoHuu: memberUser._id, SoDuHienTai: 0 });
+        memberUser.ViGiaoDich = memberWallet._id; await memberUser.save();
+
+        // Tạo profile Member liên kết với User
+        const memberProfile = await Member.create({ UserId: memberUser._id, Ten: memberUser.Ten, CapBac: 'Thành thạo', LinhVuc: 'Lập trình Web' });
+
+        // Tạo dịch vụ mẫu (DichVu) - lưu ý các trường trùng với schema
         const service1 = await DichVu.create({
             TenDichVu: 'Thiết kế Logo cơ bản',
             MoTa: 'Thiết kế logo theo yêu cầu 2D đơn giản.',
-            GiaMacDinhAI: 500000,
-            TrangThai: 'Active'
+            NguoiDung: normalUser._id,
+            ThanhVien: memberProfile._id,
+            TrangThai: 'cho-duyet',
+            Gia: 500000,
+            GiaAI: 100000
         });
 
         console.log('Dữ liệu mẫu đã được thêm thành công!');

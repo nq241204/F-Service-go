@@ -1,0 +1,43 @@
+<%- include('../layout', { body: renderBody() }) %>
+<% function renderBody() { %>
+  <div class="container mx-auto px-4 py-8">
+    <h2 class="fw-bold mb-4">Lịch Sử Giao Dịch - <%= user.Ten || user.Email %></h2>
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Loại</th>
+              <th>Số Tiền</th>
+              <th>Trạng Thái</th>
+              <th>Mô Tả</th>
+              <th>Ngày</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (transactions && transactions.length > 0) { %>
+              <% transactions.forEach(t => { %>
+                <tr>
+                  <td><%= t.Loai %></td>
+                  <td><%= t.SoTien.toLocaleString() %> VNĐ</td>
+                  <td>
+                    <span class="badge bg-<%= t.TrangThai === 'pending' ? 'warning' :
+                      t.TrangThai === 'success' ? 'success' : 'danger' %>">
+                      <%= t.TrangThai %>
+                    </span>
+                  </td>
+                  <td><%= t.MoTa || 'Không có mô tả' %></td>
+                  <td><%= new Date(t.NgayGiaoDich).toLocaleString() %></td>
+                </tr>
+              <% }) %>
+            <% } else { %>
+              <tr>
+                <td colspan="5" class="text-center text-muted">Chưa có giao dịch nào.</td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% } %>

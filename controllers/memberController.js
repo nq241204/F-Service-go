@@ -1,9 +1,11 @@
 // controllers/memberController.js
 const User = require('../models/User');
+const Member = require('../models/Member');
 const ViGiaoDich = require('../models/ViGiaoDich');
 const DichVu = require('../models/DichVu');
+const { validationResult } = require('express-validator');
 
-// --- Helper function (Lấy số dư ví) ---
+// --- Helper functions ---
 const getWalletBalance = async (userId) => {
     const user = await User.findById(userId).select('ViGiaoDich');
     if (!user || !user.ViGiaoDich) {
@@ -19,16 +21,29 @@ const getWalletBalance = async (userId) => {
 // @route   GET /member/dashboard
 const renderDashboard = async (req, res) => {
     try {
-        const memberId = req.session.user._id;
+        const memberId = req.user._id;
+        const member = await Member.findOne({ UserId: memberId });
+        
+        if (!member) {
+            req.flash('error_msg', 'Không tìm thấy thông tin thành viên');
+            return res.redirect('/');
+        }
 
-        // 1. Lấy số dư ví
+        // Lấy số dư ví
         const balance = await getWalletBalance(memberId);
 
-        // 2. Lấy các ủy thác đang chờ (pending) mà member có thể nhận (tối đa 5)
-        const availableServices = await DichVu.find({ TrangThai: 'pending' })
-                                              .sort({ GiaTri: -1 })
-                                              .limit(5)
-                                              .populate('ChuSoHuu', 'ten email');
+        // Lấy các dịch vụ đang chờ
+        const pendingServices = await DichVu.find({ 
+            TrangThai: 'cho-duyet',
+            $or: [
+                { ThanhVien: null },
+                { ThanhVien: member._id }
+            ]
+        })
+        .populate('ChuSoHuu', 'ten email')
+        .sort('-createdAt')
+        .limit(5)
+        .lean();
 
         // 3. Lấy các ủy thác Member đã nhận (trạng thái 'accepted' hoặc 'in_progress')
         const acceptedServices = await DichVu.find({
@@ -40,7 +55,7 @@ const renderDashboard = async (req, res) => {
             title: 'Dashboard Thành Viên',
             user: req.session.user,
             balance: balance,
-            availableServices: availableServices,
+            availableServices: pendingServices,
             acceptedServices: acceptedServices
         });
 

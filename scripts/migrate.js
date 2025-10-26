@@ -5,8 +5,9 @@ require('dotenv').config();
 // Import models
 const User = require('../models/User');
 const Member = require('../models/Member');
-const Service = require('../models/Service');
-const Transaction = require('../models/Transaction');
+const DichVu = require('../models/DichVu');
+const GiaoDich = require('../models/GiaoDich');
+const ViGiaoDich = require('../models/ViGiaoDich');
 
 const connectDB = require('../config/db');
 
@@ -17,43 +18,48 @@ const migrateData = async () => {
     
     console.log('Starting data migration...');
     
-    // Clear existing data (optional - be careful in production!)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Clearing existing data...');
-      await User.deleteMany({});
-      await Member.deleteMany({});
-      await Service.deleteMany({});
-      await Transaction.deleteMany({});
+    // Clear existing data
+    console.log('Clearing existing data...');
+    
+    // Drop collections để xóa cả indexes
+    const collections = ['users', 'members', 'dichvus', 'giaodiches', 'vigiaodichies'];
+    for (const collection of collections) {
+      try {
+        await mongoose.connection.db.dropCollection(collection);
+        console.log(`Dropped collection: ${collection}`);
+      } catch (err) {
+        console.log(`Collection ${collection} might not exist yet`);
+      }
     }
     
     // Create admin user
     const adminPassword = await bcrypt.hash('admin123', 10);
-    const adminUser = new User({
-      email: 'admin@fservice.com',
-      password: adminPassword,
-      role: 'admin',
-      balance: 10000,
-      isVip: true
+    
+    const adminUser = await User.create({
+      Ten: 'Admin',
+      Email: 'admin@fservice.com',
+      MatKhau: adminPassword,
+      Role: 'admin',
+      TrangThai: 'active'
     });
-    await adminUser.save();
     console.log('✅ Admin user created');
     
     // Create test users
     const userPassword = await bcrypt.hash('user123', 10);
     const testUsers = [
       {
-        email: 'user1@test.com',
-        password: userPassword,
-        role: 'user',
-        balance: 5000,
-        isVip: false
+        Ten: 'Người dùng 1',
+        Email: 'user1@fservice.com',
+        MatKhau: userPassword,
+        Role: 'user',
+        TrangThai: 'active'
       },
       {
-        email: 'user2@test.com',
-        password: userPassword,
-        role: 'user',
-        balance: 3000,
-        isVip: true
+        Ten: 'Người dùng 2',
+        Email: 'user2@fservice.com',
+        MatKhau: userPassword,
+        Role: 'user',
+        TrangThai: 'active'
       }
     ];
     
@@ -63,18 +69,18 @@ const migrateData = async () => {
     // Create members
     const members = [
       {
-        user: createdUsers[0]._id,
-        skills: ['Web Development', 'JavaScript', 'React'],
-        level: 'Chuyên gia',
-        certifications: ['AWS Certified Developer', 'React Professional'],
-        rating: 4.8
+        UserId: createdUsers[0]._id,
+        Ten: 'Thành viên 1',
+        CapBac: 'Chuyên gia',
+        LinhVuc: 'Phát triển Web',
+        DiemDanhGiaTB: 4.8
       },
       {
-        user: createdUsers[1]._id,
-        skills: ['Mobile Development', 'Flutter', 'Dart'],
-        level: 'Thành thạo',
-        certifications: ['Google Mobile Web Specialist'],
-        rating: 4.5
+        UserId: createdUsers[1]._id,
+        Ten: 'Thành viên 2',
+        CapBac: 'Thành thạo',
+        LinhVuc: 'Phát triển Mobile',
+        DiemDanhGiaTB: 4.5
       }
     ];
     
@@ -84,56 +90,65 @@ const migrateData = async () => {
     // Create services
     const services = [
       {
-        title: 'Website Development',
-        description: 'Professional website development using modern technologies',
-        user: createdUsers[0]._id,
-        member: createdMembers[0]._id,
-        status: 'pending',
-        price: 1500,
-        aiPrice: 1200
+        TenDichVu: 'Phát triển Website',
+        MoTa: 'Phát triển website chuyên nghiệp với công nghệ hiện đại',
+        NguoiDung: createdUsers[0]._id,
+        ThanhVien: createdMembers[0]._id,
+        TrangThai: 'cho-duyet',
+        Gia: 1500000,
+        GiaAI: 1200000
       },
       {
-        title: 'Mobile App Development',
-        description: 'Cross-platform mobile app development with Flutter',
-        user: createdUsers[1]._id,
-        member: createdMembers[1]._id,
-        status: 'accepted',
-        price: 2500,
-        aiPrice: 2000
+        TenDichVu: 'Phát triển Ứng dụng Di động',
+        MoTa: 'Phát triển ứng dụng di động đa nền tảng với Flutter',
+        NguoiDung: createdUsers[1]._id,
+        ThanhVien: createdMembers[1]._id,
+        TrangThai: 'da-duyet',
+        Gia: 2500000,
+        GiaAI: 2000000
       },
       {
-        title: 'E-commerce Solution',
-        description: 'Complete e-commerce platform with payment integration',
-        user: createdUsers[0]._id,
-        status: 'pending',
-        price: 3000,
-        aiPrice: 2500
+        TenDichVu: 'Giải pháp E-commerce',
+        MoTa: 'Nền tảng thương mại điện tử hoàn chỉnh với tích hợp thanh toán',
+        NguoiDung: createdUsers[0]._id,
+        TrangThai: 'cho-duyet',
+        Gia: 3000000,
+        GiaAI: 2500000
       }
     ];
     
-    const createdServices = await Service.insertMany(services);
+    const createdServices = await DichVu.insertMany(services);
     console.log('✅ Services created');
     
     // Create transactions
     const transactions = [
       {
-        user: createdUsers[0]._id,
-        amount: 5000,
-        type: 'deposit'
+        NguoiThamGia: createdUsers[0]._id,
+        SoTien: 5000000,
+        Loai: 'deposit',
+        TrangThai: 'success',
+        MoTa: 'Nạp tiền vào tài khoản',
+        NgayGiaoDich: new Date()
       },
       {
-        user: createdUsers[1]._id,
-        amount: 3000,
-        type: 'deposit'
+        NguoiThamGia: createdUsers[1]._id,
+        SoTien: 3000000,
+        Loai: 'deposit',
+        TrangThai: 'success',
+        MoTa: 'Nạp tiền vào tài khoản',
+        NgayGiaoDich: new Date()
       },
       {
-        user: createdUsers[0]._id,
-        amount: 1500,
-        type: 'payment'
+        NguoiThamGia: createdUsers[0]._id,
+        SoTien: 1500000,
+        Loai: 'commission_payment',
+        TrangThai: 'success',
+        MoTa: 'Thanh toán hoa hồng',
+        NgayGiaoDich: new Date()
       }
     ];
     
-    await Transaction.insertMany(transactions);
+    await GiaoDich.insertMany(transactions);
     console.log('✅ Transactions created');
     
     console.log('🎉 Migration completed successfully!');

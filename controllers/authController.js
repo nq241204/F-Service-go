@@ -1,154 +1,415 @@
 // controllers/authController.js
 const User = require('../models/User');
 const ViGiaoDich = require('../models/ViGiaoDich');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
+const { upload } = require('../middleware/uploadMiddleware');
+const imageProcessor = require('../utils/imageProcessor');
+const crypto = require('crypto');
+const sendEmail = require('../utils/email');
 
-// Hàm tạo JWT Token
-const generateToken = (id) => {
-    // Đảm bảo JWT_SECRET đã được định nghĩa trong file .env
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: '30d', // Hạn sử dụng 30 ngày
+// Registration route handler
+
+// Login route handler
+
+// Registration validation middleware
+const registerValidation = [
+  body('name')
+    .notEmpty().withMessage('Tên không được để trống')
+    .trim()
+    .isLength({ min: 2 }).withMessage('Tên phải có ít nhất 2 ký tự'),
+  body('email')
+    .notEmpty().withMessage('Email không được để trống')
+    .isEmail().withMessage('Email không hợp lệ')
+    .normalizeEmail(),
+  body('password')
+    .notEmpty().withMessage('Mật khẩu không được để trống')
+    .isLength({ min: 6 }).withMessage('Mật khẩu phải có ít nhất 6 ký tự'),
+  body('password2')
+    .notEmpty().withMessage('Vui lòng xác nhận mật khẩu')
+    .custom((value, { req }) => {
+      if (value !== req.body.password) {
+        throw new Error('Mật khẩu xác nhận không khớp');
+      }
+      return true;
+    })
+];
+
+// Login validation middleware
+const loginValidation = [
+  body('email')
+    .notEmpty().withMessage('Email không được để trống')
+    .isEmail().withMessage('Email không hợp lệ')
+    .normalizeEmail(),
+  body('password')
+    .notEmpty().withMessage('Mật khẩu không được để trống')
+];
+
+exports.register = [
+  registerValidation,
+  async (req, res) => {
+    try {
+      // Validate form data
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        req.flash('error_msg', errors.array().map(err => err.msg).join(', '));
+        return res.redirect('/auth/register');
+      }
+
+      const { name, email, password } = req.body;
+
+      // Check for existing user
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        req.flash('error_msg', 'Email đã được sử dụng');
+        return res.redirect('/auth/register');
+      }
+
+      // Create new user
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = new User({
+        name,
+        email,
+        password: hashedPassword,
+        role: 'user',
+        status: 'active'
+      });
+
+      await user.save();
+
+      // Create wallet for new user
+      const wallet = new ViGiaoDich({
+        user: user._id,
+        balance: 0,
+        transactions: []
+      });
+      
+      await wallet.save();
+
+      req.flash('success_msg', 'Đăng ký thành công! Vui lòng đăng nhập.');
+      res.redirect('/auth/login');
+
+    } catch (err) {
+      console.error('Registration error:', err);
+      req.flash('error_msg', 'Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.');
+      res.redirect('/auth/register');
+    }
+  }
+];
+
+exports.login = [
+  loginValidation,
+  async (req, res) => {
+    try {
+      // Validate form data
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        req.flash('error_msg', errors.array().map(err => err.msg).join(', '));
+        return res.redirect('/auth/login');
+      }
+
+      const { email, password } = req.body;
+
+      // Find user by email
+      const user = await User.findOne({ email }).select('+password');
+      if (!user) {
+        req.flash('error_msg', 'Email hoặc mật khẩu không đúng');
+        return res.redirect('/auth/login');
+      }
+
+      // Check password
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        req.flash('error_msg', 'Email hoặc mật khẩu không đúng');
+        return res.redirect('/auth/login');
+      }
+
+      // Create token
+      const token = jwt.sign(
+        { id: user._id, role: user.role },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '1d' }
+      );
+
+      // Save token and user info in session
+      req.session.token = token;
+      req.session.user = {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      };
+
+      // Redirect based on role
+      if (user.role === 'admin') {
+        res.redirect('/admin/dashboard');
+      } else if (user.role === 'member') {
+        res.redirect('/member/dashboard');
+      } else {
+        res.redirect('/user/dashboard');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      req.flash('error_msg', 'Đã có lỗi xảy ra, vui lòng thử lại');
+      res.redirect('/auth/login');
+    }
+  }
+];
+
+// Logout controller
+exports.logout = async (req, res) => {
+  try {
+    await new Promise((resolve, reject) => {
+      req.session.destroy((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
     });
+    
+    res.clearCookie('connect.sid');
+    res.redirect('/auth/login');
+  } catch (error) {
+    console.error('Lỗi đăng xuất:', error);
+    req.flash('error_msg', 'Có lỗi xảy ra khi đăng xuất.');
+    res.redirect('/');
+  }
 };
 
-// Hàm Đăng ký người dùng mới
-const register = async (req, res, next) => { // ĐÃ SỬA: Loại bỏ "exports."
-    const { ten, email, password, role } = req.body;
-    const isApi = req.originalUrl.startsWith('/api');
+// @desc    Get the current logged in user
+// @route   GET /auth/me
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('-MatKhau')
+      .lean();
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error('Lỗi lấy thông tin user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi lấy thông tin người dùng.'
+    });
+  }
+};
+
+// @desc    Update user profile
+// @route   PUT /auth/profile
+exports.updateProfile = [
+  upload.single('avatar'),
+  body('hoTen').trim().notEmpty().withMessage('Họ tên là bắt buộc.'),
+  body('soDienThoai').optional().matches(/^[0-9]{10}$/).withMessage('Số điện thoại không hợp lệ.'),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
 
     try {
-        // 1. Kiểm tra User đã tồn tại
-        let user = await User.findOne({ Email: email });
-        if (user) {
-            if (isApi) {
-                return res.status(400).json({ success: false, message: 'Email đã tồn tại.' });
-            }
-            req.flash('error', 'Email đã tồn tại');
-            return res.redirect('/register');
-        }
+      const updateData = {
+        HoTen: req.body.hoTen,
+        SoDienThoai: req.body.soDienThoai
+      };
 
-        // 2. Tạo User
-        user = new User({ 
-            Ten: ten || email.split('@')[0], 
-            Email: email, 
-            MatKhau: password, 
-            Role: role || 'user' 
-        });
-        await user.save();
-        
-        // 3. TẠO VÍ GIAO DỊCH
-        const newWallet = new ViGiaoDich({
-            LoaiVi: user.Role === 'member' ? 'Member' : 'User', 
-            ChuSoHuu: user._id,
-            SoDuHienTai: 0,
-        });
-        await newWallet.save();
+      if (req.file) {
+        // Xử lý và lưu avatar (imageProcessor exports processImage)
+        const processedImage = await imageProcessor.processImage(req.file.path || req.file.pathName || req.file.filename);
+        // processImage returns paths without 'public' prefix
+        updateData.Avatar = processedImage.medium || processedImage.thumbnail || processedImage.large || processedImage;
+      }
 
-        // 4. Cập nhật liên kết Ví cho User
-        user.ViGiaoDich = newWallet._id;
-        await user.save(); 
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: updateData },
+        { new: true }
+      ).select('-MatKhau');
 
-        // 5. Phản hồi
-        if (isApi) {
-            return res.status(201).json({ 
-                success: true, 
-                message: 'Đăng ký thành công.', 
-                user: { id: user._id, email: user.Email, role: user.Role } 
-            });
-        }
-        
-        req.flash('success', 'Đăng ký thành công! Vui lòng đăng nhập.');
-        res.redirect('/login');
-
+      res.json({
+        success: true,
+        message: 'Cập nhật thông tin thành công.',
+        data: user
+      });
     } catch (error) {
-        console.error("Lỗi đăng ký:", error);
-        if (isApi) {
-            return res.status(500).json({ success: false, message: 'Lỗi server khi đăng ký.' });
-        }
-        req.flash('error', 'Lỗi server');
-        res.redirect('/register');
+      console.error('Lỗi cập nhật profile:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi cập nhật thông tin.'
+      });
     }
-};
+  }
+];
 
-
-const login = async (req, res) => { // ĐÃ SỬA: Loại bỏ "exports."
-    const { email, password } = req.body;
-    const isApi = req.originalUrl.startsWith('/api');
+// @desc    Update user password
+// @route   PUT /auth/password
+exports.updatePassword = [
+  body('matKhauCu').notEmpty().withMessage('Mật khẩu cũ là bắt buộc.'),
+  body('matKhauMoi')
+    .isLength({ min: 6 })
+    .withMessage('Mật khẩu mới phải có ít nhất 6 ký tự.')
+    .matches(/\d/)
+    .withMessage('Mật khẩu mới phải chứa ít nhất 1 số.'),
+  body('xacNhanMatKhau').custom((value, { req }) => {
+    if (value !== req.body.matKhauMoi) {
+      throw new Error('Xác nhận mật khẩu không khớp.');
+    }
+    return true;
+  }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
 
     try {
-        // 1. Tìm người dùng
-        // Do MatKhau có `select: false`, ta phải dùng .select('+MatKhau') để có thể so sánh
-        const user = await User.findOne({ Email: email }).select('+MatKhau'); 
+      const user = await User.findById(req.user._id);
 
-        if (!user) {
-            const errorMsg = 'Thông tin đăng nhập không hợp lệ.';
-            if (isApi) {
-                return res.status(401).json({ success: false, message: errorMsg });
-            }
-            req.flash('error', errorMsg);
-            return res.redirect('/login');
-        }
-        
-        // 2. So sánh mật khẩu
-        const isMatch = await user.matchPassword(password);
+      // Kiểm tra mật khẩu cũ
+      const isMatch = await bcrypt.compare(req.body.matKhauCu, user.MatKhau);
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mật khẩu cũ không đúng.'
+        });
+      }
 
-        if (!isMatch) {
-            const errorMsg = 'Thông tin đăng nhập không hợp lệ.';
-            if (isApi) {
-                return res.status(401).json({ success: false, message: errorMsg });
-            }
-            req.flash('error', errorMsg);
-            return res.redirect('/login');
-        }
+      // Hash mật khẩu mới
+      const salt = await bcrypt.genSalt(10);
+      user.MatKhau = await bcrypt.hash(req.body.matKhauMoi, salt);
+      await user.save();
 
-        // 3. Xử lý thành công
-        
-        // Trích xuất thông tin cơ bản (Không bao gồm mật khẩu)
-        const userData = {
-            _id: user._id,
-            ten: user.Ten,
-            email: user.Email,
-            role: user.Role,
-            viGiaoDichId: user.ViGiaoDich,
-        };
-
-        if (isApi) {
-            // API Login: Trả về Token
-            const token = generateToken(user._id);
-            
-            res.status(200).json({ 
-                success: true, 
-                message: 'Đăng nhập thành công.', 
-                user: userData,
-                token: token
-            });
-        } else {
-            // Web Login: Dùng Session và Redirect
-            req.session.user = userData;
-            req.flash('success', `Chào mừng ${user.Ten}!`);
-            
-            if (user.Role === 'admin') {
-                res.redirect('/admin/dashboard');
-            } else if (user.Role === 'member') {
-                res.redirect('/member/dashboard');
-            } else {
-                res.redirect('/user/dashboard');
-            }
-        }
-
+      res.json({
+        success: true,
+        message: 'Đổi mật khẩu thành công.'
+      });
     } catch (error) {
-        console.error("Lỗi đăng nhập:", error);
-        if (isApi) {
-            res.status(500).json({ success: false, message: 'Lỗi server khi đăng nhập.' });
-        } else {
-            req.flash('error', 'Lỗi server khi đăng nhập.');
-            res.redirect('/login');
-        }
+      console.error('Lỗi đổi mật khẩu:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi đổi mật khẩu.'
+      });
     }
-};
+  }
+];
 
-// === KHẮC PHỤC LỖI: Export các biến cục bộ đã định nghĩa ===
-module.exports = {
-    register, // Hàm đăng ký
-    login     // Hàm đăng nhập
-};
+// @desc    Reset password request
+// @route   POST /auth/reset-password
+exports.resetPasswordRequest = [
+  body('email').isEmail().withMessage('Email không hợp lệ.'),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    try {
+      const user = await User.findOne({ Email: req.body.email });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy tài khoản với email này.'
+        });
+      }
+
+      // Tạo token reset password
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      user.ResetPasswordToken = resetToken;
+      user.ResetPasswordExpires = Date.now() + 3600000; // 1 giờ
+      await user.save();
+
+      // Gửi email reset password
+      const resetUrl = `${req.protocol}://${req.get('host')}/auth/reset-password/${resetToken}`;
+      await sendEmail({
+        email: user.Email,
+        subject: 'Đặt lại mật khẩu',
+        html: `
+          <h1>Yêu cầu đặt lại mật khẩu</h1>
+          <p>Bạn đã yêu cầu đặt lại mật khẩu. Click vào link bên dưới để tiếp tục:</p>
+          <a href="${resetUrl}">Đặt lại mật khẩu</a>
+          <p>Link này sẽ hết hạn sau 1 giờ.</p>
+          <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+        `
+      });
+
+      res.json({
+        success: true,
+        message: 'Email đặt lại mật khẩu đã được gửi.'
+      });
+    } catch (error) {
+      console.error('Lỗi yêu cầu reset password:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi gửi email đặt lại mật khẩu.'
+      });
+    }
+  }
+];
+
+// @desc    Reset password
+// @route   PUT /auth/reset-password/:token
+exports.resetPassword = [
+  body('matKhau')
+    .isLength({ min: 6 })
+    .withMessage('Mật khẩu phải có ít nhất 6 ký tự.')
+    .matches(/\d/)
+    .withMessage('Mật khẩu phải chứa ít nhất 1 số.'),
+  body('xacNhanMatKhau').custom((value, { req }) => {
+    if (value !== req.body.matKhau) {
+      throw new Error('Xác nhận mật khẩu không khớp.');
+    }
+    return true;
+  }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    try {
+      const user = await User.findOne({
+        ResetPasswordToken: req.params.token,
+        ResetPasswordExpires: { $gt: Date.now() }
+      });
+
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: 'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.'
+        });
+      }
+
+      // Hash mật khẩu mới
+      const salt = await bcrypt.genSalt(10);
+      user.MatKhau = await bcrypt.hash(req.body.matKhau, salt);
+      user.ResetPasswordToken = undefined;
+      user.ResetPasswordExpires = undefined;
+      await user.save();
+
+      res.json({
+        success: true,
+        message: 'Đặt lại mật khẩu thành công.'
+      });
+    } catch (error) {
+      console.error('Lỗi reset password:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi đặt lại mật khẩu.'
+      });
+    }
+  }
+];

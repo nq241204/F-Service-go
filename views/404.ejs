@@ -1,0 +1,27 @@
+<%- include('layout', { body: renderBody() }) %>
+
+<% function renderBody() { %>
+<div class="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
+  <div class="relative py-3 sm:max-w-xl sm:mx-auto">
+    <div class="relative px-4 py-10 bg-white mx-8 md:mx-0 shadow rounded-3xl sm:p-10">
+      <div class="max-w-md mx-auto">
+        <div class="divide-y divide-gray-200">
+          <div class="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">
+              404 - Không tìm thấy trang
+            </h1>
+            <p class="text-gray-600">
+              Trang bạn đang tìm kiếm không tồn tại hoặc đã bị di chuyển.
+            </p>
+            <div class="mt-6">
+              <a href="/" class="text-blue-500 hover:text-blue-700">
+                ← Quay lại trang chủ
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<% } %>

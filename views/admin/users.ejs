@@ -1,0 +1,37 @@
+<%- include('../layout', { body: renderBody() }) %>
+<% function renderBody() { %>
+  <div class="container mx-auto px-4 py-8">
+    <h2 class="text-3xl font-bold mb-6">Quản Lý Users</h2>
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <table class="w-full table-auto">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="px-4 py-2">Tên</th>
+            <th class="px-4 py-2">Email</th>
+            <th class="px-4 py-2">Role</th>
+            <th class="px-4 py-2">Trạng Thái</th>
+            <th class="px-4 py-2">Hành Động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% users.forEach(user => { %>
+            <tr>
+              <td class="border px-4 py-2"><%= user.Ten %></td>
+              <td class="border px-4 py-2"><%= user.Email %></td>
+              <td class="border px-4 py-2"><%= user.Role %></td>
+              <td class="border px-4 py-2"><%= user.TrangThai %></td>
+              <td class="border px-4 py-2">
+                <form action="/admin/user/<%= user._id %>/status" method="POST">
+                  <input type="hidden" name="status" value="<%= user.TrangThai === 'active' ? 'false' : 'true' %>">
+                  <button type="submit" class="text-sm <%= user.TrangThai === 'active' ? 'text-red-500' : 'text-green-500' %> hover:underline">
+                    <%= user.TrangThai === 'active' ? 'Chặn' : 'Kích hoạt' %>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>

@@ -3,22 +3,21 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI, {
-            // Đã loại bỏ useNewUrlParser và useUnifiedTopology (mặc định true từ Mongoose v6)
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/f-service', {
             maxPoolSize: 10,
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
-            // Cân nhắc thêm: autoIndex: process.env.NODE_ENV !== 'production', 
+            autoIndex: process.env.NODE_ENV !== 'production'
         });
-        console.log('MongoDB connected successfully');
+        console.log('Kết nối MongoDB thành công');
         
         // Lắng nghe sự kiện kết nối
         mongoose.connection.on('error', (err) => {
-            console.error('MongoDB connection error:', err);
+            console.error('Lỗi kết nối MongoDB:', err);
         });
         
         mongoose.connection.on('disconnected', () => {
-            console.log('MongoDB disconnected');
+            console.log('MongoDB đã ngắt kết nối');
         });
         
         mongoose.connection.on('reconnected', () => {

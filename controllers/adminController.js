@@ -1,85 +1,148 @@
+// controllers/adminController.js
+const { body, validationResult } = require('express-validator');
+const ServiceManager = require('../services/ServiceManager');
+const PaymentService = require('../services/PaymentService');
+const NotificationService = require('../services/NotificationService');
 const User = require('../models/User');
-const Member = require('../models/Member');
 const DichVu = require('../models/DichVu');
 const GiaoDich = require('../models/GiaoDich');
+const Member = require('../models/Member');
+const mongoose = require('mongoose');
 
-// @desc    Xem thống kê tổng quan hệ thống
-// @route   GET /api/admin/dashboard
-// @access  Private (Chỉ Admin)
+// @desc    Get system statistics
+// @route   GET /admin/stats
 exports.getSystemStats = async (req, res) => {
-    try {
-        const totalUsers = await User.countDocuments();
-        const totalMembers = await Member.countDocuments();
-        const totalServices = await DichVu.countDocuments();
-        const totalTransactions = await GiaoDich.countDocuments();
+  try {
+    // Get basic stats
+    const [
+      totalUsers,
+      totalMembers,
+      totalServices,
+      totalTransactions,
+      pendingServices,
+      pendingWithdraws
+    ] = await Promise.all([
+      User.countDocuments({ Role: 'user' }),
+      Member.countDocuments(),
+      DichVu.countDocuments(),
+      GiaoDich.countDocuments(),
+      DichVu.countDocuments({ TrangThai: 'pending' }),
+      GiaoDich.countDocuments({ 
+        Loai: 'withdraw',
+        TrangThai: 'pending'
+      })
+    ]);
 
-        // Cần thêm logic tính tổng số dư trong các Ví...
-
-        res.status(200).json({ 
-            success: true, 
-            data: {
-                totalUsers,
-                totalMembers,
-                totalServices,
-                totalTransactions,
-                // Thêm: TotalRevenue, TotalPendingCommissions...
-            } 
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Lỗi server.' });
-    }
-};
-
-// @desc    Quản lý User: Chặn hoặc Bỏ chặn User
-// @route   PUT /api/admin/user/:userId/status
-// @access  Private (Chỉ Admin)
-exports.toggleUserStatus = async (req, res) => {
-    const { userId } = req.params;
-    const { status } = req.body; // Ví dụ: status: true/false
-
-    try {
-        const user = await User.findById(userId);
-
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found.' });
+    // Get transaction stats for last 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const transactionStats = await GiaoDich.aggregate([
+      {
+        $match: {
+          TrangThai: 'success',
+          createdAt: { $gte: thirtyDaysAgo }
         }
-        
-        // Cần xác thực input status là boolean
-        if (typeof status !== 'boolean') {
-             return res.status(400).json({ success: false, message: 'Status phải là true hoặc false.' });
+      },
+      {
+        $group: {
+          _id: {
+            type: '$Loai',
+            date: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
+          },
+          total: { $sum: '$SoTien' },
+          count: { $sum: 1 }
         }
+      },
+      {
+        $group: {
+          _id: '$_id.type',
+          daily: {
+            $push: {
+              date: '$_id.date',
+              total: '$total',
+              count: '$count'
+            }
+          },
+          totalAmount: { $sum: '$total' },
+          totalCount: { $sum: '$count' }
+        }
+      }
+    ]);
 
-        user.TrangThaiUser = status;
-        await user.save();
+    const stats = {
+      basic: {
+        totalUsers,
+        totalMembers,
+        totalServices,
+        totalTransactions,
+        pendingServices,
+        pendingWithdraws
+      },
+      transactions: transactionStats.reduce((acc, stat) => {
+        acc[stat._id] = {
+          daily: stat.daily,
+          total: stat.totalAmount,
+          count: stat.totalCount
+        };
+        return acc;
+      }, {})
+    };
 
-        res.status(200).json({ 
-            success: true, 
-            message: `User ${user.Email} đã được ${status ? 'kích hoạt' : 'chặn'}.`, 
-            data: user 
-        });
-
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Lỗi server.' });
+    if (req.accepts('json')) {
+      res.json({
+        success: true,
+        data: stats
+      });
+    } else {
+      res.render('admin/dashboard', {
+        title: 'Admin Dashboard',
+        stats,
+        user: req.user
+      });
     }
+  } catch (error) {
+    console.error('Lỗi lấy thống kê hệ thống:', error);
+    if (req.accepts('json')) {
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi tải thống kê.'
+      });
+    } else {
+      req.flash('error', 'Lỗi khi tải thống kê.');
+      res.redirect('/admin');
+    }
+  }
 };
 
-// @desc    Quản lý Dịch vụ: Thêm Dịch vụ mới
-// @route   POST /api/admin/service
-// @access  Private (Chỉ Admin)
-exports.addService = async (req, res) => {
-    const { tenDichVu, moTa, giaMacDinhAI } = req.body;
-
-    try {
-        const newService = new DichVu({ tenDichVu, moTa, giaMacDinhAI });
-        await newService.save();
-        res.status(201).json({ success: true, message: 'Dịch vụ đã được thêm.', data: newService });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Lỗi server.' });
-    }
+// @desc    Get user list
+// @route   GET /admin/users
+exports.getUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-MatKhau').lean();
+    res.render('admin/users', { user: req.user, title: 'Quản Lý Users', users });
+  } catch (error) {
+    console.error(error);
+    req.flash('error_msg', 'Lỗi khi tải danh sách user.');
+    res.redirect('/admin/dashboard');
+  }
 };
 
-module.exports = {
-    getSystemStats,
-    toggleUserStatus,
-    addService,
+exports.updateUserStatus = async (req, res) => {
+  const { userId } = req.params;
+  const { status } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User không tồn tại.' });
+    }
+    user.TrangThai = status === 'true' ? 'active' : 'banned';
+    await user.save();
+
+    req.flash('success_msg', 'Cập nhật trạng thái user thành công.');
+    res.redirect('/admin/users');
+  } catch (error) {
+    console.error(error);
+    req.flash('error_msg', 'Lỗi khi cập nhật trạng thái.');
+    res.redirect('/admin/users');
+  }
 };

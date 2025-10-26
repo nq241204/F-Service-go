@@ -1,0 +1,117 @@
+/* Form styles */
+.form-container {
+    max-width: 480px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 40, 50, 0.15);
+}
+
+.form-container h2 {
+    margin-bottom: 1.5rem;
+    color: #1f2937;
+    font-weight: 600;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #374151;
+}
+
+.form-control {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #1f2937;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+    outline: 0;
+}
+
+.btn-primary {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    background: linear-gradient(135deg, #0061f2 0%, #0044b3 100%);
+    color: #fff;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 97, 242, 0.2);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.form-text {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.alert-success {
+    background-color: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #059669;
+}
+
+.alert-danger {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #dc2626;
+}
+
+/* Password strength indicator */
+.password-strength {
+    margin-top: 0.5rem;
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.password-strength-bar {
+    height: 100%;
+    width: 0;
+    transition: width 0.3s, background-color 0.3s;
+}
+
+.password-strength-bar.weak { background-color: #ef4444; width: 33.33%; }
+.password-strength-bar.medium { background-color: #f59e0b; width: 66.66%; }
+.password-strength-bar.strong { background-color: #10b981; width: 100%; }

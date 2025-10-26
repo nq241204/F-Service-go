@@ -1,168 +1,279 @@
-// controllers/walletController.js
 const mongoose = require('mongoose');
-const User = require('../models/User');
 const ViGiaoDich = require('../models/ViGiaoDich');
-const GiaoDich = require('../models/GiaoDich'); 
+const GiaoDich = require('../models/GiaoDich');
+const moment = require('moment');
+const { validationResult, body } = require('express-validator');
+const QRCode = require('qrcode');
 
-// --- Helper Functions ---
+// Helper function để lấy thông tin ví và giao dịch
+const getWalletInfo = async (userId) => {
+    const wallet = await ViGiaoDich.findOne({ ChuSoHuu: userId });
+    if (!wallet) {
+        throw new Error('Không tìm thấy ví');
+    }
+    
+    const recentTransactions = await GiaoDich.find({ 
+        NguoiThamGia: userId 
+    })
+    .sort('-createdAt')
+    .limit(10)
+    .populate('DichVu', 'TenDichVu');
 
-// @desc    Lấy số dư ví của User
-const getBalance = async (req, res) => {
+    return {
+        wallet,
+        recentTransactions
+    };
+};
+
+// @desc    Lấy thông tin ví
+// @route   GET /api/wallet
+exports.getWallet = async (req, res) => {
     try {
-        const userId = req.session.user._id;
-        
-        // Lấy ID ví từ User
-        const user = await User.findById(userId).select('ViGiaoDich');
-        if (!user || !user.ViGiaoDich) {
-            return res.status(404).json({ success: false, message: 'Không tìm thấy ví.' });
+        const { wallet, recentTransactions } = await getWalletInfo(req.user._id);
+
+        if (req.xhr) {
+            return res.json({
+                success: true,
+                data: {
+                    balance: wallet.SoDuHienTai,
+                    recentTransactions: recentTransactions.map(t => ({
+                        ...t.toObject(),
+                        formattedAmount: new Intl.NumberFormat('vi-VN', { 
+                            style: 'currency', 
+                            currency: 'VND' 
+                        }).format(t.SoTien),
+                        formattedDate: moment(t.createdAt).format('DD/MM/YYYY HH:mm')
+                    }))
+                }
+            });
         }
 
-        // Lấy số dư hiện tại
-        const wallet = await ViGiaoDich.findById(user.ViGiaoDich).select('SoDuHienTai');
-        
-        res.status(200).json({
-            success: true,
-            balance: wallet ? wallet.SoDuHienTai : 0
+        res.render('user/wallet', {
+            title: 'Ví của tôi',
+            wallet,
+            recentTransactions,
+            moment,
+            user: req.user
         });
     } catch (error) {
-        console.error("Lỗi khi lấy số dư ví:", error);
-        res.status(500).json({ success: false, message: 'Lỗi server khi lấy số dư ví.' });
+        console.error('Lỗi getWallet:', error);
+        if (req.xhr) {
+            return res.status(500).json({
+                success: false,
+                message: 'Lỗi khi lấy thông tin ví'
+            });
+        }
+        req.flash('error_msg', 'Lỗi khi lấy thông tin ví');
+        res.redirect('/user/dashboard');
     }
 };
 
-// --- Transaction Controllers ---
-
-// @desc    Xử lý nạp tiền (deposit)
-// @route   POST /api/user/wallet/deposit
-const deposit = async (req, res) => {
-    const { amount } = req.body;
-    const amountNum = parseInt(amount);
-
-    if (isNaN(amountNum) || amountNum <= 0) {
-        req.flash('error', 'Số tiền nạp không hợp lệ.');
-        return res.redirect('/user/wallet');
-    }
-
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
+// @desc    Lấy số dư ví
+// @route   GET /api/wallet/balance
+exports.getBalance = async (req, res) => {
     try {
-        const userId = req.session.user._id;
-
-        // 1. Tìm User và ID Ví
-        const user = await User.findById(userId).session(session);
-        if (!user || !user.ViGiaoDich) {
-            throw new Error('User hoặc Ví không hợp lệ.');
-        }
-        
-        // 2. Cập nhật số dư Ví
-        const wallet = await ViGiaoDich.findByIdAndUpdate(
-            user.ViGiaoDich,
-            { $inc: { SoDuHienTai: amountNum } },
-            { new: true, session: session }
-        );
+        const wallet = await ViGiaoDich.findOne({ 
+            ChuSoHuu: req.user._id 
+        });
 
         if (!wallet) {
-            throw new Error('Cập nhật số dư ví thất bại.');
+            throw new Error('Không tìm thấy ví');
         }
 
-        // 3. Tạo bản ghi Giao Dịch
-        const newTransaction = new GiaoDich({
-            Loai: 'deposit',
-            SoTien: amountNum,
-            NguoiThamGia: user._id,
-            TrangThai: 'success',
-            MoTa: `Nạp tiền thành công ${amountNum.toLocaleString()} VNĐ`,
-            NgayGiaoDich: new Date()
+        res.json({
+            success: true,
+            balance: wallet.SoDuHienTai,
+            formattedBalance: new Intl.NumberFormat('vi-VN', { 
+                style: 'currency', 
+                currency: 'VND' 
+            }).format(wallet.SoDuHienTai)
         });
-        await newTransaction.save({ session });
-
-        // 4. Commit transaction
-        await session.commitTransaction();
-        session.endSession();
-
-        req.flash('success', `Nạp tiền ${amountNum.toLocaleString()} VNĐ thành công!`);
-        res.redirect('/user/wallet');
-
     } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
-        console.error("Lỗi Deposit (MongoDB Transaction):", error.message);
-        req.flash('error', 'Nạp tiền thất bại do lỗi hệ thống.');
-        res.redirect('/user/wallet');
+        console.error('Lỗi getBalance:', error);
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// @desc    Yêu cầu rút tiền (withdraw)
-// @route   POST /api/user/wallet/withdraw
-const withdraw = async (req, res) => {
-    const { amount } = req.body;
-    const amountNum = parseInt(amount);
-
-    if (isNaN(amountNum) || amountNum <= 50000) {
-        req.flash('error', 'Số tiền rút không hợp lệ (tối thiểu 50,000 VNĐ).');
-        return res.redirect('/user/wallet');
-    }
-
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-        const userId = req.session.user._id;
-
-        // 1. Tìm User và ID Ví
-        const user = await User.findById(userId).session(session);
-        if (!user || !user.ViGiaoDich) {
-            throw new Error('User hoặc Ví không hợp lệ.');
+// @desc    Nạp tiền vào ví
+// @route   POST /api/wallet/deposit
+exports.deposit = [
+    body('soTien').isInt({ min: 10000 }).withMessage('Số tiền nạp tối thiểu là 10,000 VNĐ.'),
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            if (req.xhr) {
+                return res.status(400).json({ 
+                    success: false, 
+                    errors: errors.array() 
+                });
+            }
+            req.flash('error_msg', errors.array()[0].msg);
+            return res.redirect('back');
         }
 
-        // 2. Kiểm tra số dư trước
-        const wallet = await ViGiaoDich.findById(user.ViGiaoDich).session(session);
-        if (wallet.SoDuHienTai < amountNum) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const { soTien } = req.body;
+            const userId = req.user._id;
+
+            const vi = await ViGiaoDich.findOne({ ChuSoHuu: userId }).session(session);
+            if (!vi) {
+                throw new Error('Không tìm thấy ví');
+            }
+
+            // Tạo giao dịch
+            const giaoDich = new GiaoDich({
+                Loai: 'deposit',
+                SoTien: parseInt(soTien),
+                NguoiThamGia: userId,
+                TrangThai: 'pending',
+                MoTa: `Nạp ${parseInt(soTien).toLocaleString('vi-VN')}đ vào ví`
+            });
+            
+            await giaoDich.save({ session });
+            vi.GiaoDich.push(giaoDich._id);
+            await vi.save({ session });
+
+            // Tạo mã QR
+            const qrData = {
+                type: 'deposit',
+                amount: soTien,
+                userId: userId.toString(),
+                transactionId: giaoDich._id.toString()
+            };
+            
+            const qrCode = await QRCode.toDataURL(JSON.stringify(qrData));
+
+            await session.commitTransaction();
+
+            if (req.xhr) {
+                return res.json({ 
+                    success: true, 
+                    message: 'Yêu cầu nạp tiền đã được tạo.',
+                    data: {
+                        qrCode,
+                        transaction: giaoDich
+                    }
+                });
+            }
+
+            req.flash('success_msg', 'Yêu cầu nạp tiền đã được tạo.');
+            res.render('user/wallet', {
+                user: req.user,
+                title: 'Ví của tôi',
+                wallet: vi,
+                qrCode,
+                recentTransactions: await GiaoDich.find({ 
+                    NguoiThamGia: userId 
+                })
+                .sort('-createdAt')
+                .limit(10),
+                moment
+            });
+
+        } catch (error) {
             await session.abortTransaction();
+            console.error('Lỗi deposit:', error);
+            
+            if (req.xhr) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Lỗi khi xử lý yêu cầu nạp tiền'
+                });
+            }
+            
+            req.flash('error_msg', 'Lỗi khi xử lý yêu cầu nạp tiền');
+            res.redirect('back');
+        } finally {
             session.endSession();
-            req.flash('error', 'Số dư ví không đủ để thực hiện giao dịch.');
-            return res.redirect('/user/wallet');
         }
-        
-        // 3. Trừ số dư Ví
-        const updatedWallet = await ViGiaoDich.findByIdAndUpdate(
-            user.ViGiaoDich,
-            { $inc: { SoDuHienTai: -amountNum } },
-            { new: true, session: session }
-        );
-
-        // 4. Tạo bản ghi Giao Dịch (Ban đầu ở trạng thái Pending)
-        const newTransaction = new GiaoDich({
-            Loai: 'withdraw',
-            SoTien: amountNum,
-            NguoiThamGia: user._id,
-            TrangThai: 'pending', 
-            MoTa: `Yêu cầu rút tiền ${amountNum.toLocaleString()} VNĐ`,
-            NgayGiaoDich: new Date()
-        });
-        await newTransaction.save({ session });
-
-        // 5. Commit transaction
-        await session.commitTransaction();
-        session.endSession();
-
-        req.flash('success', `Yêu cầu rút tiền ${amountNum.toLocaleString()} VNĐ đã được ghi nhận. Vui lòng chờ Admin xét duyệt.`);
-        res.redirect('/user/wallet');
-
-    } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
-        console.error("Lỗi Withdraw (MongoDB Transaction):", error.message);
-        req.flash('error', 'Rút tiền thất bại do lỗi hệ thống.');
-        res.redirect('/user/wallet');
     }
-};
+];
 
+// @desc    Rút tiền từ ví
+// @route   POST /api/wallet/withdraw
+exports.withdraw = [
+    body('soTien').isInt({ min: 50000 }).withMessage('Số tiền rút tối thiểu là 50,000 VNĐ.'),
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            if (req.xhr) {
+                return res.status(400).json({ 
+                    success: false, 
+                    errors: errors.array() 
+                });
+            }
+            req.flash('error_msg', errors.array()[0].msg);
+            return res.redirect('back');
+        }
 
-// Export các hàm đã được định nghĩa bằng 'const'
-module.exports = {
-    getBalance,
-    deposit,
-    withdraw,
-};
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const { soTien } = req.body;
+            const userId = req.user._id;
+
+            const vi = await ViGiaoDich.findOne({ ChuSoHuu: userId }).session(session);
+            if (!vi) {
+                throw new Error('Ví không tồn tại');
+            }
+
+            if (vi.SoDuHienTai < parseInt(soTien)) {
+                throw new Error('Số dư không đủ');
+            }
+
+            // Tạo giao dịch rút tiền
+            const giaoDich = new GiaoDich({
+                Loai: 'withdraw',
+                SoTien: parseInt(soTien),
+                NguoiThamGia: userId,
+                TrangThai: 'pending',
+                MoTa: `Yêu cầu rút ${parseInt(soTien).toLocaleString('vi-VN')}đ`
+            });
+
+            // Cập nhật số dư và lưu giao dịch
+            vi.SoDuHienTai -= parseInt(soTien);
+            await giaoDich.save({ session });
+            vi.GiaoDich.push(giaoDich._id);
+            await vi.save({ session });
+
+            await session.commitTransaction();
+
+            if (req.xhr) {
+                return res.json({
+                    success: true,
+                    message: 'Yêu cầu rút tiền đã được tạo',
+                    data: {
+                        transaction: giaoDich,
+                        newBalance: vi.SoDuHienTai
+                    }
+                });
+            }
+
+            req.flash('success_msg', 'Yêu cầu rút tiền đã được tạo.');
+            res.redirect('back');
+
+        } catch (error) {
+            await session.abortTransaction();
+            console.error('Lỗi withdraw:', error);
+
+            if (req.xhr) {
+                return res.status(500).json({
+                    success: false,
+                    message: error.message || 'Lỗi khi xử lý yêu cầu rút tiền'
+                });
+            }
+
+            req.flash('error_msg', error.message || 'Lỗi khi xử lý yêu cầu rút tiền');
+            res.redirect('back');
+        } finally {
+            session.endSession();
+        }
+    }
+];

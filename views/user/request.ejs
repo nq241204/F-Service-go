@@ -1,22 +1,23 @@
-router.get('/user/request', authMiddleware(['user']), (req, res) => {
-  res.render('user/request');
-});
-
-router.post('/user/request', authMiddleware(['user']), async (req, res) => {
-  const { title, description, price } = req.body;
-  try {
-    const service = new Service({
-      title,
-      description,
-      user: req.session.user.id,
-      price: parseInt(price) || 0,
-      status: 'pending',
-    });
-    await service.save();
-    req.flash('success', 'Tạo yêu cầu thành công!');
-    res.redirect('/dashboard/user');
-  } catch (err) {
-    req.flash('error', 'Lỗi khi tạo yêu cầu');
-    res.redirect('/user/request');
-  }
-});
+<%- include('../layout', { body: renderBody() }) %>
+<% function renderBody() { %>
+  <div class="container mx-auto px-4 py-8">
+    <h2 class="text-3xl font-bold mb-6">Tạo Yêu Cầu Dịch Vụ</h2>
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <form action="/user/request" method="POST">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700">Tiêu Đề</label>
+          <input type="text" name="title" class="mt-1 w-full px-4 py-2 border rounded-lg" required>
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700">Mô Tả</label>
+          <textarea name="description" class="mt-1 w-full px-4 py-2 border rounded-lg"></textarea>
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700">Giá Mặc Định (VNĐ)</label>
+          <input type="number" name="price" class="mt-1 w-full px-4 py-2 border rounded-lg" min="0">
+        </div>
+        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Tạo Yêu Cầu</button>
+      </form>
+    </div>
+  </div>
+<% } %>

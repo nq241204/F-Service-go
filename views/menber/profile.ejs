@@ -1,0 +1,19 @@
+<%- include('../layout', { body: renderBody() }) %>
+<% function renderBody() { %>
+  <div class="container mx-auto px-4 py-8">
+    <h2 class="text-3xl font-bold mb-6">Hồ Sơ Thành Viên</h2>
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <form action="/api/member/profile" method="POST">
+        <div>
+          <label>Tên:</label>
+          <input type="text" name="ten" value="<%= user.ten %>" />
+        </div>
+        <div>
+          <label>Mô tả:</label>
+          <textarea name="mota"><%= user.mota || '' %></textarea>
+        </div>
+        <button type="submit">Cập nhật</button>
+      </form>
+    </div>
+  </div>
+<% } %>

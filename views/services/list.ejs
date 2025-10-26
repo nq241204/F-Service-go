@@ -1,0 +1,23 @@
+<%- include('../layout', { body: renderBody() }) %>
+<% function renderBody() { %>
+  <div class="container mx-auto px-4 py-8">
+    <h2 class="text-3xl font-bold mb-6">Danh Sách Dịch Vụ</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <% services.forEach(service => { %>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h3 class="text-xl font-semibold mb-2"><%= service.TenDichVu %></h3>
+          <p class="text-gray-600 mb-4"><%= service.MoTa || 'Không có mô tả' %></p>
+          <p class="text-indigo-600 font-semibold">Giá mặc định: <%= service.GiaMacDinhAI.toLocaleString() %> VNĐ</p>
+          <form action="/api/services/commission" method="POST" class="mt-4">
+            <input type="hidden" name="dichVuId" value="<%= service._id %>">
+            <div class="mb-2">
+              <label class="block text-sm font-medium text-gray-700">Giá Thỏa Thuận</label>
+              <input type="number" name="giaThoaThuan" class="mt-1 w-full px-4 py-2 border rounded-lg" required min="0">
+            </div>
+            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Tạo Ủy Thác</button>
+          </form>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+<% } %>
