@@ -148,10 +148,17 @@ const deposit = async (req, res) => {
 
         await session.commitTransaction();
         
+        // Generate mock QR code for demo
+        const qrCodeData = `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==`;
+        
         res.json({
             success: true,
-            message: 'Nạp tiền thành công',
-            amount: amount
+            message: 'Tạo yêu cầu nạp tiền thành công',
+            data: {
+                qrCode: qrCodeData,
+                amount: amount,
+                transactionId: 'DEMO_' + Date.now()
+            }
         });
 
     } catch (error) {

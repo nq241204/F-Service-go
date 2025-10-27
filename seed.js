@@ -29,9 +29,9 @@ const seedData = async () => {
         console.log('Đã xóa dữ liệu cũ.');
 
         // Tạo users (mật khẩu plain sẽ được hash bởi pre-save hook trong model)
-        const adminUser = await User.create({ Ten: 'Admin', Email: 'admin@fservice.com', MatKhau: '123456', Role: 'admin' });
-        const normalUser = await User.create({ Ten: 'Test User', Email: 'user@fservice.com', MatKhau: '123456', Role: 'user' });
-        const memberUser = await User.create({ Ten: 'Test Member', Email: 'member@fservice.com', MatKhau: '123456', Role: 'member' });
+        const adminUser = await User.create({ name: 'Admin', email: 'admin@fservice.com', password: '123456', role: 'admin' });
+        const normalUser = await User.create({ name: 'Test User', email: 'user@fservice.com', password: '123456', role: 'user' });
+        const memberUser = await User.create({ name: 'Test Member', email: 'member@fservice.com', password: '123456', role: 'member' });
 
         // Tạo ví cho users (LoaiVi 'User' dùng ChuSoHuu = User._id)
         const adminWallet = await ViGiaoDich.create({ LoaiVi: 'User', ChuSoHuu: adminUser._id, SoDuHienTai: 5000000 });
@@ -44,7 +44,7 @@ const seedData = async () => {
         memberUser.ViGiaoDich = memberWallet._id; await memberUser.save();
 
         // Tạo profile Member liên kết với User
-        const memberProfile = await Member.create({ UserId: memberUser._id, Ten: memberUser.Ten, CapBac: 'Thành thạo', LinhVuc: 'Lập trình Web' });
+        const memberProfile = await Member.create({ UserId: memberUser._id, Ten: memberUser.name, CapBac: 'Thành thạo', LinhVuc: 'Lập trình Web' });
 
         // Tạo dịch vụ mẫu (DichVu) - lưu ý các trường trùng với schema
         const service1 = await DichVu.create({

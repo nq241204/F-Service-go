@@ -7,6 +7,7 @@ const MongoStore = require('connect-mongo');
 const flash = require('connect-flash');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const expressLayouts = require('express-ejs-layouts');
 require('dotenv').config();
 const connectDB = require('./config/db');
 
@@ -48,11 +49,23 @@ app.use((req, res, next) => {
     res.locals.success_msg = req.flash('success_msg');
     res.locals.error_msg = req.flash('error_msg');
     res.locals.error = req.flash('error');
-    res.locals.user = req.user || null;
+    
+    // Use session user first, fallback to req.user from auth middleware
+    res.locals.user = req.session?.user || req.user || null;
+    
+    // Debug session
+    if (req.session && req.session.user) {
+        console.log('Session user:', req.session.user);
+    }
+    console.log('req.user:', req.user);
+    console.log('res.locals.user:', res.locals.user);
+    
     next();
 });
 
 // View Engine Setup
+app.use(expressLayouts);
+app.set('layout', 'layout');
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 

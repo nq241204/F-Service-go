@@ -56,7 +56,6 @@ router.get('/:role/dashboard', authMiddleware(['user', 'member', 'admin']), (req
         return res.redirect(`/${userRole}/dashboard`);
     }
     
-    // 2. Chuyển giao việc render cho route/controller cụ thể của từng role
     // Chúng ta sẽ cần định nghĩa các route này trong routes/user.js, routes/member.js, routes/admin.js
     if (userRole === 'user') {
         // Chuyển sang route /user/dashboard trong routes/user.js
@@ -75,11 +74,5 @@ router.get('/:role/dashboard', authMiddleware(['user', 'member', 'admin']), (req
     return res.redirect('/'); 
 });
 
-
-// === TẠO ROUTE WEB CHO USER (User Routes) ===
-// Do các route chi tiết cho user nằm trong routes/user.js, ta không cần thêm chúng ở đây.
-
-// NOTE: Chúng ta sẽ giả định app.use('/user', require('./routes/user'));
-// đã được cấu hình trong server.js.
 
 module.exports = router;

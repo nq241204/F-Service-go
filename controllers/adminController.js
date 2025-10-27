@@ -95,8 +95,7 @@ exports.getSystemStats = async (req, res) => {
     } else {
       res.render('admin/dashboard', {
         title: 'Admin Dashboard',
-        stats,
-        user: req.user
+        stats
       });
     }
   } catch (error) {

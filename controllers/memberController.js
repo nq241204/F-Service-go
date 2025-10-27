@@ -53,7 +53,6 @@ const renderDashboard = async (req, res) => {
 
         res.render('member/dashboard', { 
             title: 'Dashboard Thành Viên',
-            user: req.session.user,
             balance: balance,
             availableServices: pendingServices,
             acceptedServices: acceptedServices
@@ -74,8 +73,7 @@ const renderProfile = async (req, res) => {
         const member = await User.findById(req.session.user._id).select('ten email role'); 
 
         res.render('member/profile', { 
-            title: 'Hồ Sơ Thành Viên',
-            user: member // Dùng thông tin mới lấy được
+            title: 'Hồ Sơ Thành Viên'
         });
     } catch (error) {
         console.error("Lỗi khi render Profile Member:", error);

@@ -1,246 +1,566 @@
 <%- include('../layout', { body: renderBody() }) %>
 <% function renderBody() { %>
+<!-- Flash Messages -->
+<% if (error_msg && error_msg.length) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <%= error_msg %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<% } %>
+
+<% if (success_msg && success_msg.length) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= success_msg %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<% } %>
+
 <div class="container mx-auto px-4 py-8">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Thông tin ví -->
-        <div class="md:col-span-2">
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-2xl font-bold mb-4">Ví của tôi</h2>
-                <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
-                    <div class="mb-4 md:mb-0">
-                        <p class="text-gray-600">Số dư hiện tại</p>
-                        <p class="text-3xl font-bold text-blue-600">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Ví điện tử</h1>
+        <p class="text-gray-600">Quản lý tài chính và giao dịch của bạn</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Wallet Card -->
+        <div class="lg:col-span-2">
+            <!-- Balance Card -->
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-xl p-8 text-white mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <p class="text-blue-100 text-sm font-medium mb-1">Số dư khả dụng</p>
+                        <h2 class="text-4xl font-bold">
                             <%= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(wallet.SoDuHienTai) %>
-                        </p>
+                        </h2>
                     </div>
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <button onclick="showDepositModal()" 
-                            class="w-full sm:w-auto bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                            </svg>
-                            Nạp tiền
-                        </button>
-                        <button onclick="showWithdrawModal()"
-                            class="w-full sm:w-auto bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center justify-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                            </svg>
-                            Rút tiền
-                        </button>
+                    <div class="bg-white/20 p-4 rounded-full">
+                        <i class="fas fa-wallet text-3xl"></i>
                     </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button onclick="showDepositModal()" 
+                        class="flex-1 bg-white text-blue-600 px-6 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-all duration-200 flex items-center justify-center shadow-lg">
+                        <i class="fas fa-plus-circle mr-2"></i>
+                        Nạp tiền
+                    </button>
+                    <button onclick="showWithdrawModal()"
+                        class="flex-1 bg-white/20 backdrop-blur text-white px-6 py-3 rounded-xl font-semibold hover:bg-white/30 transition-all duration-200 flex items-center justify-center border border-white/30">
+                        <i class="fas fa-minus-circle mr-2"></i>
+                        Rút tiền
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="bg-green-100 p-3 rounded-lg">
+                            <i class="fas fa-arrow-down text-green-600"></i>
+                        </div>
+                        <span class="text-xs text-gray-500 font-medium">Tháng này</span>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-1">Tổng nạp</p>
+                    <p class="text-xl font-bold text-green-600">
+                        <%= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                            recentTransactions
+                                .filter(t => t.Loai === 'deposit' && t.TrangThai === 'success')
+                                .reduce((sum, t) => sum + t.SoTien, 0)
+                        ) %>
+                    </p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="bg-red-100 p-3 rounded-lg">
+                            <i class="fas fa-arrow-up text-red-600"></i>
+                        </div>
+                        <span class="text-xs text-gray-500 font-medium">Tháng này</span>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-1">Tổng rút</p>
+                    <p class="text-xl font-bold text-red-600">
+                        <%= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                            recentTransactions
+                                .filter(t => t.Loai === 'withdraw' && t.TrangThai === 'success')
+                                .reduce((sum, t) => sum + t.SoTien, 0)
+                        ) %>
+                    </p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="bg-blue-100 p-3 rounded-lg">
+                            <i class="fas fa-gift text-blue-600"></i>
+                        </div>
+                        <span class="text-xs text-gray-500 font-medium">Tháng này</span>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-1">Hoa hồng</p>
+                    <p class="text-xl font-bold text-blue-600">
+                        <%= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                            recentTransactions
+                                .filter(t => t.Loai === 'commission_payment' && t.TrangThai === 'success')
+                                .reduce((sum, t) => sum + t.SoTien, 0)
+                        ) %>
+                    </p>
                 </div>
             </div>
         </div>
 
-        <!-- Thống kê -->
-        <div class="md:col-span-1">
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h3 class="text-xl font-semibold mb-4">Thống kê</h3>
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Tổng nạp</span>
-                        <span class="font-semibold text-green-600">
-                            <%= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                                recentTransactions
-                                    .filter(t => t.Loai === 'deposit' && t.TrangThai === 'success')
-                                    .reduce((sum, t) => sum + t.SoTien, 0)
-                            ) %>
+        <!-- Side Panel -->
+        <div class="lg:col-span-1">
+            <!-- Wallet Info Card -->
+            <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                    Thông tin ví
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600 text-sm">Mã ví</span>
+                        <span class="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                            <%= wallet._id.toString().slice(-8).toUpperCase() %>
                         </span>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Tổng rút</span>
-                        <span class="font-semibold text-red-600">
-                            <%= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                                recentTransactions
-                                    .filter(t => t.Loai === 'withdraw' && t.TrangThai === 'success')
-                                    .reduce((sum, t) => sum + t.SoTien, 0)
-                            ) %>
-                        </span>
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-600 text-sm">Loại ví</span>
+                        <span class="text-sm font-medium text-blue-600">Ví người dùng</span>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Hoa hồng</span>
-                        <span class="font-semibold text-blue-600">
-                            <%= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                                recentTransactions
-                                    .filter(t => t.Loai === 'commission_payment' && t.TrangThai === 'success')
-                                    .reduce((sum, t) => sum + t.SoTien, 0)
-                            ) %>
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-gray-600 text-sm">Trạng thái</span>
+                        <span class="text-sm font-medium text-green-600 flex items-center">
+                            <i class="fas fa-check-circle mr-1"></i>
+                            Hoạt động
                         </span>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Giao dịch gần đây -->
-        <div class="md:col-span-3">
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h3 class="text-xl font-semibold mb-4">Giao dịch gần đây</h3>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead>
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Thời gian
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Loại giao dịch
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Số tiền
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Trạng thái
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <% if (recentTransactions && recentTransactions.length > 0) { %>
-                                <% recentTransactions.forEach(transaction => { %>
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <%= moment(transaction.createdAt).format('DD/MM/YYYY HH:mm') %>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="<%= transaction.Loai === 'deposit' || transaction.Loai === 'commission_payment' ? 'text-green-600' : 'text-red-600' %>">
-                                            <%= {
-                                                'deposit': 'Nạp tiền',
-                                                'withdraw': 'Rút tiền',
-                                                'service_payment': 'Thanh toán dịch vụ',
-                                                'commission_payment': 'Nhận hoa hồng',
-                                                'commission_fee': 'Phí dịch vụ'
-                                            }[transaction.Loai] || transaction.Loai %>
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <span class="<%= transaction.Loai === 'deposit' || transaction.Loai === 'commission_payment' ? 'text-green-600' : 'text-red-600' %>">
-                                            <%= transaction.Loai === 'deposit' || transaction.Loai === 'commission_payment' ? '+' : '-' %>
-                                            <%= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(transaction.SoTien) %>
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                            <%= {
-                                                'success': 'bg-green-100 text-green-800',
-                                                'pending': 'bg-yellow-100 text-yellow-800',
-                                                'failed': 'bg-red-100 text-red-800'
-                                            }[transaction.TrangThai] %>">
-                                            <%= {
-                                                'success': 'Thành công',
-                                                'pending': 'Đang xử lý',
-                                                'failed': 'Thất bại'
-                                            }[transaction.TrangThai] %>
-                                        </span>
-                                    </td>
-                                </tr>
-                                <% }); %>
-                            <% } else { %>
-                                <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">
-                                        Chưa có giao dịch nào
-                                    </td>
-                                </tr>
-                            <% } %>
-                        </tbody>
-                    </table>
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-bolt text-yellow-500 mr-2"></i>
+                    Thao tác nhanh
+                </h3>
+                <div class="space-y-2">
+                    <button onclick="exportTransactions()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center text-gray-700">
+                        <i class="fas fa-download text-gray-400 mr-3"></i>
+                        <span class="text-sm">Xuất báo cáo giao dịch</span>
+                    </button>
+                    <button onclick="showTransactionHistory()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center text-gray-700">
+                        <i class="fas fa-history text-gray-400 mr-3"></i>
+                        <span class="text-sm">Xem lịch sử đầy đủ</span>
+                    </button>
+                    <button onclick="showSupport()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center text-gray-700">
+                        <i class="fas fa-headset text-gray-400 mr-3"></i>
+                        <span class="text-sm">Hỗ trợ thanh toán</span>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Nạp tiền -->
-    <div id="depositModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Nạp tiền vào ví</h3>
-                <form id="depositForm" action="/api/wallet/deposit" method="POST" class="space-y-4">
-                    <div>
-                        <label for="soTien" class="block text-sm font-medium text-gray-700">
-                            Số tiền nạp (VNĐ)
-                        </label>
-                        <input type="number" name="soTien" id="soTien" required min="10000" step="1000"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            placeholder="Tối thiểu 10,000 VNĐ">
-                    </div>
-                    <div id="qrCodeContainer" class="hidden text-center space-y-4">
-                        <p class="text-sm text-gray-600">Quét mã QR để thanh toán:</p>
-                        <img id="qrCode" src="" alt="QR Code" class="mx-auto max-w-[200px]">
-                    </div>
-                    <div class="flex space-x-4">
-                        <button type="submit"
-                            class="w-full inline-flex justify-center rounded-md border border-transparent px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            Xác nhận
-                        </button>
-                        <button type="button" onclick="hideDepositModal()"
-                            class="w-full inline-flex justify-center rounded-md border border-gray-300 px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                            Hủy
-                        </button>
-                    </div>
-                </form>
+    <!-- Transactions Table -->
+    <div class="bg-white rounded-xl shadow-md border border-gray-100 mt-6">
+        <div class="p-6 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                    <i class="fas fa-exchange-alt text-blue-500 mr-2"></i>
+                    Giao dịch gần đây
+                </h3>
+                <div class="flex items-center space-x-2">
+                    <select class="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="all">Tất cả</option>
+                        <option value="deposit">Nạp tiền</option>
+                        <option value="withdraw">Rút tiền</option>
+                        <option value="commission">Hoa hồng</option>
+                    </select>
+                </div>
             </div>
         </div>
-    </div>
-
-    <!-- Modal Rút tiền -->
-    <div id="withdrawModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Rút tiền từ ví</h3>
-                <form id="withdrawForm" action="/api/wallet/withdraw" method="POST" class="space-y-4">
-                    <div>
-                        <label for="withdrawAmount" class="block text-sm font-medium text-gray-700">
-                            Số tiền rút (VNĐ)
-                        </label>
-                        <input type="number" name="soTien" id="withdrawAmount" required min="50000" step="1000"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-                            placeholder="Tối thiểu 50,000 VNĐ">
-                        <p class="mt-1 text-sm text-gray-500">Số dư khả dụng: 
-                            <%= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(wallet.SoDuHienTai) %>
-                        </p>
-                    </div>
-                    <div class="flex space-x-4">
-                        <button type="submit"
-                            class="w-full inline-flex justify-center rounded-md border border-transparent px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            Xác nhận
-                        </button>
-                        <button type="button" onclick="hideWithdrawModal()"
-                            class="w-full inline-flex justify-center rounded-md border border-gray-300 px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                            Hủy
-                        </button>
-                    </div>
-                </form>
-            </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Thời gian
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Loại giao dịch
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Số tiền
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Trạng thái
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <% if (recentTransactions && recentTransactions.length > 0) { %>
+                        <% recentTransactions.forEach(transaction => { %>
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                <div class="flex items-center">
+                                    <i class="far fa-clock text-gray-400 mr-2"></i>
+                                    <%= moment(transaction.createdAt).format('DD/MM/YYYY HH:mm') %>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <% const iconMap = {
+                                        'deposit': 'fa-arrow-down text-green-500',
+                                        'withdraw': 'fa-arrow-up text-red-500',
+                                        'service_payment': 'fa-shopping-cart text-blue-500',
+                                        'commission_payment': 'fa-gift text-purple-500',
+                                        'commission_fee': 'fa-coins text-orange-500'
+                                    } %>
+                                    <i class="fas <%= iconMap[transaction.Loai] || 'fa-exchange-alt text-gray-500' %> mr-2"></i>
+                                    <span class="text-sm font-medium text-gray-900">
+                                        <%= {
+                                            'deposit': 'Nạp tiền',
+                                            'withdraw': 'Rút tiền',
+                                            'service_payment': 'Thanh toán dịch vụ',
+                                            'commission_payment': 'Nhận hoa hồng',
+                                            'commission_fee': 'Phí dịch vụ'
+                                        }[transaction.Loai] || transaction.Loai %>
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="<%= transaction.Loai === 'deposit' || transaction.Loai === 'commission_payment' ? 'text-green-600' : 'text-red-600' %> font-semibold">
+                                    <%= transaction.Loai === 'deposit' || transaction.Loai === 'commission_payment' ? '+' : '-' %>
+                                    <%= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(transaction.SoTien) %>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                                    <%= {
+                                        'success': 'bg-green-100 text-green-800',
+                                        'pending': 'bg-yellow-100 text-yellow-800',
+                                        'failed': 'bg-red-100 text-red-800'
+                                    }[transaction.TrangThai] %>">
+                                    <span class="w-2 h-2 rounded-full mr-1.5
+                                        <%= {
+                                            'success': 'bg-green-400',
+                                            'pending': 'bg-yellow-400',
+                                            'failed': 'bg-red-400'
+                                        }[transaction.TrangThai] %>"></span>
+                                    <%= {
+                                        'success': 'Thành công',
+                                        'pending': 'Đang xử lý',
+                                        'failed': 'Thất bại'
+                                    }[transaction.TrangThai] %>
+                                </span>
+                            </td>
+                        </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="4" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center">
+                                    <i class="fas fa-inbox text-gray-300 text-4xl mb-3"></i>
+                                    <p class="text-gray-500 font-medium">Chưa có giao dịch nào</p>
+                                    <p class="text-gray-400 text-sm mt-1">Bắt đầu nạp tiền để sử dụng ví</p>
+                                </div>
+                            </td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<!-- Scripts -->
+<!-- Enhanced Modal Nạp tiền -->
+<div id="depositModal" class="hidden fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+    <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold text-white flex items-center">
+                    <i class="fas fa-plus-circle mr-2"></i>
+                    Nạp tiền vào ví
+                </h3>
+                <button onclick="hideDepositModal()" class="text-white/80 hover:text-white transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <form id="depositForm" action="/api/wallet/deposit" method="POST" class="p-6">
+            <div class="mb-6">
+                <label for="soTien" class="block text-sm font-medium text-gray-700 mb-2">
+                    Số tiền nạp (VNĐ)
+                </label>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        <i class="fas fa-dollar-sign"></i>
+                    </span>
+                    <input type="number" name="soTien" id="soTien" required min="10000" step="1000"
+                        class="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        placeholder="Nhập số tiền">
+                </div>
+                <p class="mt-2 text-sm text-gray-500">Tối thiểu: 10,000 VNĐ</p>
+                <div id="depositError" class="mt-2 text-sm text-red-600 hidden"></div>
+            </div>
+
+            <!-- Quick Amount Buttons -->
+            <div class="mb-6">
+                <p class="text-sm text-gray-600 mb-3">Chọn nhanh:</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" onclick="setAmount(100000)" class="px-3 py-2 bg-gray-100 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors">
+                        100K
+                    </button>
+                    <button type="button" onclick="setAmount(200000)" class="px-3 py-2 bg-gray-100 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors">
+                        200K
+                    </button>
+                    <button type="button" onclick="setAmount(500000)" class="px-3 py-2 bg-gray-100 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors">
+                        500K
+                    </button>
+                    <button type="button" onclick="setAmount(1000000)" class="px-3 py-2 bg-gray-100 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors">
+                        1M
+                    </button>
+                    <button type="button" onclick="setAmount(2000000)" class="px-3 py-2 bg-gray-100 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors">
+                        2M
+                    </button>
+                    <button type="button" onclick="setAmount(5000000)" class="px-3 py-2 bg-gray-100 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors">
+                        5M
+                    </button>
+                </div>
+            </div>
+            
+            <div id="qrCodeContainer" class="hidden text-center space-y-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <p class="text-sm text-blue-800 font-medium mb-3">Quét mã QR để thanh toán:</p>
+                    <div class="bg-white p-4 rounded-lg inline-block">
+                        <img id="qrCode" src="" alt="QR Code" class="max-w-[200px]">
+                    </div>
+                    <p class="text-xs text-blue-600 mt-3">Mã QR sẽ hết hạn sau 5 phút</p>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button type="submit" id="depositSubmitBtn"
+                    class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
+                    <i class="fas fa-check mr-2"></i>
+                    Xác nhận nạp tiền
+                </button>
+                <button type="button" onclick="hideDepositModal()"
+                    class="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all">
+                    <i class="fas fa-times mr-2"></i>
+                    Hủy
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Enhanced Modal Rút tiền -->
+<div id="withdrawModal" class="hidden fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+    <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+        <div class="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold text-white flex items-center">
+                    <i class="fas fa-minus-circle mr-2"></i>
+                    Rút tiền từ ví
+                </h3>
+                <button onclick="hideWithdrawModal()" class="text-white/80 hover:text-white transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <form id="withdrawForm" action="/api/wallet/withdraw" method="POST" class="p-6">
+            <div class="mb-6">
+                <label for="withdrawAmount" class="block text-sm font-medium text-gray-700 mb-2">
+                    Số tiền rút (VNĐ)
+                </label>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        <i class="fas fa-dollar-sign"></i>
+                    </span>
+                    <input type="number" name="soTien" id="withdrawAmount" required min="50000" step="1000"
+                        class="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                        placeholder="Nhập số tiền">
+                </div>
+                <div class="mt-2 flex justify-between items-center">
+                    <p class="text-sm text-gray-500">Tối thiểu: 50,000 VNĐ</p>
+                    <p class="text-sm font-medium text-green-600">
+                        Khả dụng: <%= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(wallet.SoDuHienTai) %>
+                    </p>
+                </div>
+                <div id="withdrawError" class="mt-2 text-sm text-red-600 hidden"></div>
+            </div>
+
+            <!-- Bank Information -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Thông tin ngân hàng
+                </label>
+                <div class="space-y-3">
+                    <div>
+                        <input type="text" name="bankName" id="bankName" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                            placeholder="Tên ngân hàng (VD: Vietcombank)">
+                    </div>
+                    <div>
+                        <input type="text" name="accountNumber" id="accountNumber" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                            placeholder="Số tài khoản">
+                    </div>
+                    <div>
+                        <input type="text" name="accountName" id="accountName" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                            placeholder="Chủ tài khoản">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Amount Buttons -->
+            <div class="mb-6">
+                <p class="text-sm text-gray-600 mb-3">Chọn nhanh:</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" onclick="setWithdrawAmount(100000)" class="px-3 py-2 bg-gray-100 hover:bg-green-100 rounded-lg text-sm font-medium transition-colors">
+                        100K
+                    </button>
+                    <button type="button" onclick="setWithdrawAmount(200000)" class="px-3 py-2 bg-gray-100 hover:bg-green-100 rounded-lg text-sm font-medium transition-colors">
+                        200K
+                    </button>
+                    <button type="button" onclick="setWithdrawAmount(500000)" class="px-3 py-2 bg-gray-100 hover:bg-green-100 rounded-lg text-sm font-medium transition-colors">
+                        500K
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button type="submit" id="withdrawSubmitBtn"
+                    class="flex-1 bg-green-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all">
+                    <i class="fas fa-check mr-2"></i>
+                    Xác nhận rút tiền
+                </button>
+                <button type="button" onclick="hideWithdrawModal()"
+                    class="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all">
+                    <i class="fas fa-times mr-2"></i>
+                    Hủy
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Enhanced Scripts -->
 <script>
+// Modal functions
 function showDepositModal() {
     document.getElementById('depositModal').classList.remove('hidden');
+    document.getElementById('depositModal').classList.add('flex');
+    document.body.style.overflow = 'hidden';
 }
 
 function hideDepositModal() {
     document.getElementById('depositModal').classList.add('hidden');
+    document.getElementById('depositModal').classList.remove('flex');
     document.getElementById('qrCodeContainer').classList.add('hidden');
     document.getElementById('depositForm').reset();
+    document.getElementById('depositError').classList.add('hidden');
+    document.body.style.overflow = 'auto';
 }
 
 function showWithdrawModal() {
     document.getElementById('withdrawModal').classList.remove('hidden');
+    document.getElementById('withdrawModal').classList.add('flex');
+    document.body.style.overflow = 'hidden';
 }
 
 function hideWithdrawModal() {
     document.getElementById('withdrawModal').classList.add('hidden');
+    document.getElementById('withdrawModal').classList.remove('flex');
     document.getElementById('withdrawForm').reset();
+    document.getElementById('withdrawError').classList.add('hidden');
+    document.body.style.overflow = 'auto';
 }
 
-// Xử lý form nạp tiền
+// Quick amount functions
+function setAmount(amount) {
+    document.getElementById('soTien').value = amount;
+    validateDepositAmount();
+}
+
+function setWithdrawAmount(amount) {
+    const maxAmount = wallet.SoDuHienTai 
+    if (amount > maxAmount) {
+        amount = maxAmount;
+    }
+    document.getElementById('withdrawAmount').value = amount;
+    validateWithdrawAmount();
+}
+
+// Validation functions
+function validateDepositAmount() {
+    const amount = parseInt(document.getElementById('soTien').value);
+    const errorDiv = document.getElementById('depositError');
+    
+    if (amount < 10000) {
+        errorDiv.textContent = 'Số tiền nạp tối thiểu là 10,000 VNĐ';
+        errorDiv.classList.remove('hidden');
+        return false;
+    }
+    
+    if (amount > 10000000) {
+        errorDiv.textContent = 'Số tiền nạp tối đa là 10,000,000 VNĐ';
+        errorDiv.classList.remove('hidden');
+        return false;
+    }
+    
+    errorDiv.classList.add('hidden');
+    return true;
+}
+
+function validateWithdrawAmount() {
+    const amount = parseInt(document.getElementById('withdrawAmount').value);
+    const maxAmount =  wallet.SoDuHienTai 
+    const errorDiv = document.getElementById('withdrawError');
+    
+    if (amount < 50000) {
+        errorDiv.textContent = 'Số tiền rút tối thiểu là 50,000 VNĐ';
+        errorDiv.classList.remove('hidden');
+        return false;
+    }
+    
+    if (amount > maxAmount) {
+        errorDiv.textContent = 'Số dư không đủ. Vui lòng nhập số tiền nhỏ hơn ' + 
+            new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(maxAmount);
+        errorDiv.classList.remove('hidden');
+        return false;
+    }
+    
+    errorDiv.classList.add('hidden');
+    return true;
+}
+
+// Real-time validation
+document.getElementById('soTien').addEventListener('input', validateDepositAmount);
+document.getElementById('withdrawAmount').addEventListener('input', validateWithdrawAmount);
+
+// Enhanced form handlers
 document.getElementById('depositForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const formData = new FormData(this);
+    
+    if (!validateDepositAmount()) {
+        return;
+    }
+    
+    const submitBtn = document.getElementById('depositSubmitBtn');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...';
     
     try {
+        const formData = new FormData(this);
         const response = await fetch('/api/wallet/deposit', {
             method: 'POST',
             headers: {
@@ -254,55 +574,108 @@ document.getElementById('depositForm').addEventListener('submit', async function
         const result = await response.json();
         
         if (result.success) {
-            // Hiển thị mã QR
+            // Show QR code
             document.getElementById('qrCode').src = result.data.qrCode;
             document.getElementById('qrCodeContainer').classList.remove('hidden');
             
-            // Cập nhật UI sau 5 giây
+            // Update button
+            submitBtn.innerHTML = '<i class="fas fa-qrcode mr-2"></i>Đã tạo mã QR';
+            
+            // Auto refresh after 30 seconds
             setTimeout(() => {
                 window.location.reload();
-            }, 5000);
+            }, 30000);
         } else {
-            alert(result.message || 'Có lỗi xảy ra');
+            document.getElementById('depositError').textContent = result.message || 'Có lỗi xảy ra';
+            document.getElementById('depositError').classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Có lỗi xảy ra khi xử lý yêu cầu');
+        document.getElementById('depositError').textContent = 'Có lỗi xảy ra khi xử lý yêu cầu';
+        document.getElementById('depositError').classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
     }
 });
 
-// Xử lý form rút tiền
 document.getElementById('withdrawForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const formData = new FormData(this);
+    
+    if (!validateWithdrawAmount()) {
+        return;
+    }
+    
+    const submitBtn = document.getElementById('withdrawSubmitBtn');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...';
     
     try {
+        const formData = new FormData(this);
         const response = await fetch('/api/wallet/withdraw', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                soTien: formData.get('soTien')
+                amount: formData.get('soTien'),
+                bankInfo: {
+                    bankName: formData.get('bankName'),
+                    accountNumber: formData.get('accountNumber'),
+                    accountName: formData.get('accountName')
+                }
             })
         });
 
         const result = await response.json();
         
         if (result.success) {
-            alert('Yêu cầu rút tiền đã được tạo thành công');
-            hideWithdrawModal();
-            window.location.reload();
+            // Show success message
+            submitBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Thành công!';
+            submitBtn.classList.remove('bg-green-600');
+            submitBtn.classList.add('bg-green-500');
+            
+            // Close modal and refresh after delay
+            setTimeout(() => {
+                hideWithdrawModal();
+                window.location.reload();
+            }, 1500);
         } else {
-            alert(result.message || 'Có lỗi xảy ra');
+            document.getElementById('withdrawError').textContent = result.message || 'Có lỗi xảy ra';
+            document.getElementById('withdrawError').classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Có lỗi xảy ra khi xử lý yêu cầu');
+        document.getElementById('withdrawError').textContent = 'Có lỗi xảy ra khi xử lý yêu cầu';
+        document.getElementById('withdrawError').classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
     }
 });
 
-// Đóng modal khi click ra ngoài
+// Utility functions
+function exportTransactions() {
+    // Implementation for exporting transactions
+    alert('Tính năng xuất báo cáo đang được phát triển');
+}
+
+function showTransactionHistory() {
+    // Implementation for showing full history
+    alert('Tính năng lịch sử đầy đủ đang được phát triển');
+}
+
+function showSupport() {
+    // Implementation for support
+    alert('Tính năng hỗ trợ đang được phát triển');
+}
+
+// Close modals when clicking outside
 window.onclick = function(event) {
     if (event.target === document.getElementById('depositModal')) {
         hideDepositModal();
@@ -311,5 +684,13 @@ window.onclick = function(event) {
         hideWithdrawModal();
     }
 }
+
+// Close modals with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        hideDepositModal();
+        hideWithdrawModal();
+    }
+});
 </script>
 <% } %>

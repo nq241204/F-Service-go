@@ -119,7 +119,6 @@ exports.renderDashboard = async (req, res) => {
 
         res.render('user/dashboard', {
             title: 'Trang Chủ',
-            user: req.user,
             wallet,
             stats,
             services,
@@ -197,7 +196,6 @@ exports.renderWallet = async (req, res) => {
 
         res.render('user/wallet', {
             title: 'Ví Điện Tử',
-            user: req.user,
             wallet,
             stats,
             transactions: categorizedTransactions,
@@ -309,7 +307,6 @@ exports.renderMyCommissions = async (req, res) => {
 
         res.render('user/commissions', {
             title: 'Dịch Vụ Của Tôi',
-            user: req.user,
             services: enrichedServices,
             stats: stats.reduce((acc, stat) => {
                 acc[stat._id] = stat;

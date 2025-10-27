@@ -5,10 +5,12 @@ const { authMiddleware } = require('../middleware/authMiddleware');
 const ViGiaoDich = require('../models/ViGiaoDich');
 const UyThac = require('../models/UyThac');
 const DichVu = require('../models/DichVu');
+const GiaoDich = require('../models/GiaoDich');
 const { body, validationResult } = require('express-validator');
 
 router.get('/dashboard', authMiddleware(['user', 'member']), async (req, res) => {
   try {
+    console.log('User in dashboard:', req.user);
     const wallet = await ViGiaoDich.findOne({ ChuSoHuu: req.user._id }).lean();
     const commissions = await UyThac.find({ UserId: req.user._id })
       .populate('DichVuId')
@@ -22,7 +24,7 @@ router.get('/dashboard', authMiddleware(['user', 'member']), async (req, res) =>
       pendingCount,
     });
   } catch (err) {
-    console.error(err);
+    console.error('Dashboard error:', err);
     req.flash('error_msg', 'Lỗi khi tải dashboard.');
     res.redirect('/');
   }

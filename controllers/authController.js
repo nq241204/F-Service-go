@@ -44,16 +44,23 @@ const loginValidation = [
     .normalizeEmail(),
   body('password')
     .notEmpty().withMessage('Mật khẩu không được để trống')
+    .isLength({ min: 6 }).withMessage('Mật khẩu phải có ít nhất 6 ký tự')
 ];
 
 exports.register = [
   registerValidation,
   async (req, res) => {
     try {
+      console.log('Register request body:', req.body);
+      
       // Validate form data
       const errors = validationResult(req);
+      console.log('Validation errors:', errors.array());
+      
       if (!errors.isEmpty()) {
-        req.flash('error_msg', errors.array().map(err => err.msg).join(', '));
+        const errorMessage = errors.array().map(err => err.msg).join(', ');
+        console.log('Setting flash message:', errorMessage);
+        req.flash('error_msg', errorMessage);
         return res.redirect('/auth/register');
       }
 
@@ -80,12 +87,17 @@ exports.register = [
 
       // Create wallet for new user
       const wallet = new ViGiaoDich({
-        user: user._id,
-        balance: 0,
-        transactions: []
+        LoaiVi: 'User',
+        ChuSoHuu: user._id,
+        SoDuHienTai: 0,
+        GiaoDich: []
       });
       
       await wallet.save();
+
+      // Link wallet to user
+      user.ViGiaoDich = wallet._id;
+      await user.save();
 
       req.flash('success_msg', 'Đăng ký thành công! Vui lòng đăng nhập.');
       res.redirect('/auth/login');
@@ -102,10 +114,16 @@ exports.login = [
   loginValidation,
   async (req, res) => {
     try {
+      console.log('Login request body:', req.body);
+      
       // Validate form data
       const errors = validationResult(req);
+      console.log('Login validation errors:', errors.array());
+      
       if (!errors.isEmpty()) {
-        req.flash('error_msg', errors.array().map(err => err.msg).join(', '));
+        const errorMessage = errors.array().map(err => err.msg).join(', ');
+        console.log('Setting login flash message:', errorMessage);
+        req.flash('error_msg', errorMessage);
         return res.redirect('/auth/login');
       }
 
@@ -114,14 +132,16 @@ exports.login = [
       // Find user by email
       const user = await User.findOne({ email }).select('+password');
       if (!user) {
-        req.flash('error_msg', 'Email hoặc mật khẩu không đúng');
+        console.log('User not found for email:', email);
+        req.flash('error_msg', 'Email không tồn tại trong hệ thống');
         return res.redirect('/auth/login');
       }
 
       // Check password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        req.flash('error_msg', 'Email hoặc mật khẩu không đúng');
+        console.log('Password mismatch for email:', email);
+        req.flash('error_msg', 'Mật khẩu không đúng. Vui lòng thử lại.');
         return res.redirect('/auth/login');
       }
 
@@ -160,14 +180,17 @@ exports.login = [
 // Logout controller
 exports.logout = async (req, res) => {
   try {
-    await new Promise((resolve, reject) => {
-      req.session.destroy((err) => {
-        if (err) reject(err);
-        else resolve();
-      });
+    // Clear session data
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destroy error:', err);
+      }
     });
     
+    // Clear all cookies
     res.clearCookie('connect.sid');
+    res.clearCookie('token');
+    
     res.redirect('/auth/login');
   } catch (error) {
     console.error('Lỗi đăng xuất:', error);

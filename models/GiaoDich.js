@@ -1,4 +1,4 @@
-// models/GiaoDich.js (Transaction)
+// GiaoDich.js (Transaction)
 const mongoose = require('mongoose');
 
 const GiaoDichSchema = new mongoose.Schema({

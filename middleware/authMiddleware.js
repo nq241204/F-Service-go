@@ -28,9 +28,9 @@ const authMiddleware = (roles = []) => {
             if (err) {
                 if (!req.originalUrl.startsWith('/api')) {
                     if (req.session) {
-                        req.session.destroy(() => res.redirect('/login'));
+                        req.session.destroy(() => res.redirect('/auth/login'));
                     } else {
-                        res.redirect('/login');
+                        res.redirect('/auth/login');
                     }
                 } else {
                     res.status(401).json({ msg: 'Token is not valid' });
@@ -39,29 +39,29 @@ const authMiddleware = (roles = []) => {
             }
 
             User.findById(decoded.id)
-                .select('-MatKhau')
+                .select('-password')
                 .populate('ViGiaoDich')
                 .then(user => {
                     if (!user) {
                         if (!req.originalUrl.startsWith('/api')) {
                             req.session.error_msg = 'User not found';
-                            return res.redirect('/login');
+                            return res.redirect('/auth/login');
                         }
                         return res.status(401).json({ msg: 'User not found' });
                     }
 
-                    if (user.TrangThai === 'banned') {
+                    if (user.status === 'banned') {
                         if (!req.originalUrl.startsWith('/api')) {
-                            req.session.error_msg = 'Tài khoản bị khóa';
-                            return res.redirect('/login');
+                            req.session.error_msg = 'Account is banned';
+                            return res.redirect('/auth/login');
                         }
                         return res.status(403).json({ msg: 'Account is banned' });
                     }
 
-                    if (roles.length > 0 && !roles.includes(user.Role)) {
+                    if (roles.length > 0 && !roles.includes(user.role)) {
                         if (!req.originalUrl.startsWith('/api')) {
-                            req.session.error_msg = 'Không có quyền truy cập';
-                            return res.redirect('/login');
+                            req.session.error_msg = 'Access denied';
+                            return res.redirect('/auth/login');
                         }
                         return res.status(403).json({ msg: 'Access denied' });
                     }
@@ -72,7 +72,7 @@ const authMiddleware = (roles = []) => {
                 .catch(err => {
                     console.error('Database error:', err);
                     if (!req.originalUrl.startsWith('/api')) {
-                        return res.redirect('/login');
+                        return res.redirect('/auth/login');
                     }
                     res.status(500).json({ msg: 'Server error' });
                 });

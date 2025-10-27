@@ -18,11 +18,7 @@ router.get('/balance', auth, walletController.getBalance);
 router.post(
     '/deposit',
     auth,
-    [
-        body('amount').isInt({ min: 10000 }).withMessage('Số tiền tối thiểu là 10,000'),
-        body('method').isIn(['banking', 'momo', 'zalopay']).withMessage('Phương thức thanh toán không hợp lệ')
-    ],
-    transactionController.deposit
+    walletController.deposit
 );
 
 // @route   POST /api/wallet/withdraw
@@ -30,12 +26,7 @@ router.post(
 router.post(
     '/withdraw',
     auth,
-    [
-        body('amount').isInt({ min: 100000 }).withMessage('Số tiền rút tối thiểu là 100,000'),
-        body('bankInfo.accountNumber').notEmpty().withMessage('Số tài khoản không được để trống'),
-        body('bankInfo.bankName').notEmpty().withMessage('Tên ngân hàng không được để trống')
-    ],
-    transactionController.withdraw
+    walletController.withdraw
 );
 
 // @route   GET /api/wallet/transactions
