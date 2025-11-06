@@ -63,7 +63,6 @@ exports.register = [
         req.flash('error_msg', errorMessage);
         return res.redirect('/auth/register');
       }
-
       const { name, email, password } = req.body;
 
       // Check for existing user
@@ -180,18 +179,34 @@ exports.login = [
 // Logout controller
 exports.logout = async (req, res) => {
   try {
+    // Set no-cache headers to prevent browser from caching the logout page
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
     // Clear session data
     req.session.destroy((err) => {
       if (err) {
         console.error('Session destroy error:', err);
       }
+      
+      // Clear all cookies
+      res.clearCookie('connect.sid', {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production'
+      });
+      res.clearCookie('token', {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production'
+      });
+      
+      // Redirect to login with cache headers
+      res.redirect('/auth/login');
     });
-    
-    // Clear all cookies
-    res.clearCookie('connect.sid');
-    res.clearCookie('token');
-    
-    res.redirect('/auth/login');
   } catch (error) {
     console.error('Lỗi đăng xuất:', error);
     req.flash('error_msg', 'Có lỗi xảy ra khi đăng xuất.');

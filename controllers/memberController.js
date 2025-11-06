@@ -72,7 +72,7 @@ const renderProfile = async (req, res) => {
         // Lấy thông tin chi tiết của Member để hiển thị form
         const member = await User.findById(req.session.user._id).select('ten email role'); 
 
-        res.render('member/profile', { 
+        res.render('menber/profile', { 
             title: 'Hồ Sơ Thành Viên'
         });
     } catch (error) {

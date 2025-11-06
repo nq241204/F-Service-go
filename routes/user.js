@@ -6,7 +6,57 @@ const ViGiaoDich = require('../models/ViGiaoDich');
 const UyThac = require('../models/UyThac');
 const DichVu = require('../models/DichVu');
 const GiaoDich = require('../models/GiaoDich');
+const User = require('../models/User');
 const { body, validationResult } = require('express-validator');
+const walletController = require('../controllers/walletController');
+const moment = require('moment');
+
+// Home page for logged-in users
+router.get('/home', authMiddleware(['user', 'member']), async (req, res) => {
+  try {
+    // Get wallet info
+    const wallet = await ViGiaoDich.findOne({ ChuSoHuu: req.user._id }).lean();
+    
+    // Get commissions statistics
+    const allCommissions = await UyThac.find({ UserId: req.user._id }).lean();
+    const totalCommissions = allCommissions.length;
+    const inProgressCommissions = allCommissions.filter(c => 
+      c.TrangThai === 'DangThucHien' || c.TrangThai === 'in_progress'
+    ).length;
+    
+    // Get recent commissions
+    const recentCommissions = await UyThac.find({ UserId: req.user._id })
+      .populate('DichVu')
+      .sort({ NgayTao: -1 })
+      .limit(5)
+      .lean();
+    
+    // Get transactions statistics
+    const allTransactions = await GiaoDich.find({ ViGiaoDichId: wallet?._id }).lean();
+    const totalTransactions = allTransactions.length;
+    
+    // Get recent transactions
+    const recentTransactions = await GiaoDich.find({ ViGiaoDichId: wallet?._id })
+      .sort({ NgayGiaoDich: -1 })
+      .limit(5)
+      .lean();
+    
+    res.render('home', {
+      title: 'Trang chủ',
+      user: req.user,
+      wallet,
+      totalCommissions,
+      inProgressCommissions,
+      totalTransactions,
+      recentCommissions,
+      recentTransactions
+    });
+  } catch (err) {
+    console.error('Home page error:', err);
+    req.flash('error_msg', 'Lỗi khi tải trang chủ.');
+    res.redirect('/');
+  }
+});
 
 router.get('/dashboard', authMiddleware(['user', 'member']), async (req, res) => {
   try {
@@ -99,4 +149,97 @@ router.get('/transactions', authMiddleware(['user', 'member']), async (req, res)
     res.redirect('/user/wallet');
   }
 });
+
+// Wallet routes
+router.get('/wallet', authMiddleware(['user', 'member']), walletController.getWallet);
+
+// Become Member flow
+router.get('/become-member', authMiddleware(['user']), memberApplicationController.renderApplyForm);
+router.post(
+  '/become-member',
+  authMiddleware(['user']),
+  upload.array('certificates', 5),
+  handleUploadError,
+  memberApplicationController.submitApplication
+);
+
+// Profile routes
+router.get('/profile', authMiddleware(['user', 'member']), async (req, res) => {
+  try {
+    const wallet = await ViGiaoDich.findOne({ ChuSoHuu: req.user._id }).lean();
+    const commissions = await UyThac.find({ UserId: req.user._id }).lean();
+    const transactions = await GiaoDich.find({ NguoiThamGia: req.user._id }).lean();
+    
+    // Calculate statistics
+    const totalCommissions = commissions.length;
+    const completedCommissions = commissions.filter(c => c.TrangThai === 'DaHoanThanh').length;
+    const inProgressCommissions = commissions.filter(c => c.TrangThai === 'DangThucHien').length;
+    const totalTransactions = transactions.length;
+
+    res.render('user/profile', {
+      user: req.user,
+      title: 'Thông tin cá nhân',
+      wallet,
+      totalCommissions,
+      completedCommissions,
+      inProgressCommissions,
+      totalTransactions
+    });
+  } catch (err) {
+    console.error('Profile error:', err);
+    req.flash('error_msg', 'Lỗi khi tải thông tin cá nhân.');
+    res.redirect('/user/dashboard');
+  }
+});
+
+router.post('/profile/update', 
+  authMiddleware(['user', 'member']),
+  [
+    body('name').trim().notEmpty().withMessage('Tên không được để trống.')
+      .isLength({ min: 2 }).withMessage('Tên phải có ít nhất 2 ký tự.'),
+    body('email').isEmail().withMessage('Email không hợp lệ.')
+      .normalizeEmail()
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      req.flash('error_msg', errors.array().map(e => e.msg).join(', '));
+      return res.redirect('/user/profile');
+    }
+
+    const { name, email } = req.body;
+    try {
+      // Check if email is already taken by another user
+      const existingUser = await User.findOne({ 
+        email: email.toLowerCase(), 
+        _id: { $ne: req.user._id } 
+      });
+      
+      if (existingUser) {
+        req.flash('error_msg', 'Email này đã được sử dụng bởi tài khoản khác.');
+        return res.redirect('/user/profile');
+      }
+
+      // Update user information
+      await User.findByIdAndUpdate(req.user._id, {
+        name: name,
+        email: email.toLowerCase()
+      });
+
+      // Update session user data
+      if (req.session.user) {
+        req.session.user.name = name;
+        req.session.user.email = email.toLowerCase();
+      }
+
+      req.flash('success_msg', 'Cập nhật thông tin thành công!');
+      res.redirect('/user/profile');
+    } catch (err) {
+      console.error('Profile update error:', err);
+      req.flash('error_msg', 'Lỗi khi cập nhật thông tin.');
+      res.redirect('/user/profile');
+    }
+  }
+);
+
 module.exports = router;

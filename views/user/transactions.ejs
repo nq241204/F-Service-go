@@ -1,6 +1,4 @@
-<%- include('../layout', { body: renderBody() }) %>
-<% function renderBody() { %>
-  <div class="container mx-auto px-4 py-8">
+ <div class="container mx-auto px-4 py-8">
     <h2 class="fw-bold mb-4">Lịch Sử Giao Dịch - <%= user.Ten || user.Email %></h2>
     <div class="bg-white p-6 rounded-lg shadow-md">
       <div class="table-responsive">
@@ -40,4 +38,3 @@
       </div>
     </div>
   </div>
-<% } %>

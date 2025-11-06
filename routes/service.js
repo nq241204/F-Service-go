@@ -42,7 +42,7 @@ router.post('/create',
     authMiddleware(['user', 'member']),
     upload.single('HinhAnh'),
     [
-        body('TenDichVu').trim().notEmpty().withMessage('T�n d?ch v? l� b?t bu?c'),
+        body('TenDichVu').trim().notEmpty().withMessage('Tên dịch vụ l� b?t bu?c'),
         body('MoTa').trim().notEmpty().withMessage('M� t? l� b?t bu?c'),
         body('GiaTien').isInt({ min: 0 }).withMessage('Gi� ti?n ph?i l� s? kh�ng �m'),
         body('LoaiDichVu').isIn(['basic', 'premium', 'vip']).withMessage('Lo?i d?ch v? kh�ng h?p l?'),

@@ -14,6 +14,15 @@ const isGuest = (req, res, next) => {
 
 const authMiddleware = (roles = []) => {
     return function(req, res, next) {
+        // Set no-cache headers for protected pages to prevent browser caching
+        if (!req.originalUrl.startsWith('/api')) {
+            res.set({
+                'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            });
+        }
+        
         const token = req.session?.token || req.header('Authorization')?.replace('Bearer ', '');
 
         if (!token) {

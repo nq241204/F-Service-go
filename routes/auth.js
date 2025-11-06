@@ -6,14 +6,26 @@ const { isGuest, authMiddleware } = require('../middleware/authMiddleware');
 
 // Guest routes (only accessible when not logged in)
 router.get('/login', isGuest, async (req, res) => {
+    // Set no-cache headers to prevent browser caching login page
+    res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    });
     res.render('auth/login', {
-        title: 'Đăng nhập'
+        title: 'Đăng nhập',
     });
 });
 
 router.get('/register', isGuest, async (req, res) => {
+    // Set no-cache headers to prevent browser caching register page
+    res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    });
     res.render('auth/register', {
-        title: 'Đăng ký tài khoản'
+        title: 'Đăng ký tài khoản',
     });
 });
 

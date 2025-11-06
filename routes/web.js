@@ -15,15 +15,19 @@ router.get('/login', (req, res) => {
     if (req.session.user) {
         return res.redirect(`/${req.session.user.role}/dashboard`);
     }
-    res.render('auth/login', { title: 'Đăng nhập' });
+    res.render('auth/login', { 
+        title: 'Đăng nhập'
+    });
 });
 
-router.get('/register', (req, res) => {
+router.get('/register',(req, res) => {
     // Nếu đã đăng nhập, chuyển hướng
     if (req.session.user) {
         return res.redirect(`/${req.session.user.role}/dashboard`);
     }
-    res.render('auth/register', { title: 'Đăng ký' });
+    res.render('auth/register', { 
+        title: 'Đăng ký'
+    });
 });
 
 // Xử lý POST đăng nhập và đăng ký
@@ -58,8 +62,8 @@ router.get('/:role/dashboard', authMiddleware(['user', 'member', 'admin']), (req
     
     // Chúng ta sẽ cần định nghĩa các route này trong routes/user.js, routes/member.js, routes/admin.js
     if (userRole === 'user') {
-        // Chuyển sang route /user/dashboard trong routes/user.js
-        return res.redirect('/user/dashboard'); 
+        // Chuyển sang trang chủ người dùng đã đăng nhập
+        return res.redirect('/home'); 
     }
     if (userRole === 'member') {
         // Chuyển sang route /member/dashboard trong routes/member.js
@@ -73,6 +77,5 @@ router.get('/:role/dashboard', authMiddleware(['user', 'member', 'admin']), (req
     // Trường hợp mặc định
     return res.redirect('/'); 
 });
-
 
 module.exports = router;

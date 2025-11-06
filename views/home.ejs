@@ -1,4 +1,4 @@
-<div class="hero">
+<div class="hero" style="max-width: 1000px; margin: auto;">
     <div class="container text-center">
         <h1 class="display-4 fw-bold mb-4">F-Service Platform</h1>
         <p class="lead mb-4 text-muted">Kết nối người cần giúp với người sẵn sàng giúp</p>
@@ -13,6 +13,45 @@
     </div>
 </div>
 
+<p class="indent"></p>
+<link rel="stylesheet" href="/css/slideshow.css">
+<script src="/js/slideshow.js"></script>
+<div class="slideshow-container">
+
+
+  <div class="mySlides fade">
+    <div class="numbertext">1 / 3</div>
+    <img src="/picture/image1.jpg" style="width:100%" height="500">
+    <div class="text">Caption Text</div>
+  </div>
+
+  <div class="mySlides fade">
+    <div class="numbertext">2 / 3</div>
+    <img src="/picture/image2.jpg" style="width:100%" height="500" >
+    <div class="text">Caption Two</div>
+  </div>
+
+  <div class="mySlides fade">
+    <div class="numbertext">3 / 3</div>
+    <img src="/picture/image3.jpg" style="width:100%" height="500">
+    <div class="text">Caption Three</div>
+  </div>
+  <div class="mySlides fade">
+    <div class="numbertext">3 / 3</div>
+    <img src="/picture/image3.jpg" style="width:100%" height="500">
+    <div class="text">Caption Three</div>
+  </div>
+  
+  <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
+  <a class="next" onclick="plusSlides(1)">&#10095;</a>
+</div>
+<br>
+
+<div style="text-align:center">
+  <span class="dot" onclick="currentSlide(1)"></span>
+  <span class="dot" onclick="currentSlide(2)"></span>
+  <span class="dot" onclick="currentSlide(3)"></span>
+</div>
 <div class="container py-5">
     <div class="row g-4 justify-content-center">
         <div class="col-lg-4 col-md-6">
@@ -78,7 +117,6 @@
                     <div class="card-body p-4">
                         <h3 class="h4 mb-3">Sẵn sàng bắt đầu?</h3>
                         <p>Đăng ký ngay hôm nay để trải nghiệm dịch vụ của chúng tôi.</p>
-                        <a href="/auth/register" class="btn btn-primary">Đăng ký ngay</a>
                     </div>
                 </div>
             </div>

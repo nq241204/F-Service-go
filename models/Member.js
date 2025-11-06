@@ -12,8 +12,11 @@ const MemberSchema = new mongoose.Schema({
     Ten: { type: String, required: true },
     CapBac: { type: String, enum: ['Intern', 'Thành thạo', 'Chuyên gia'], required: true },
     LinhVuc: { type: String, required: true },
-    DiemDanhGiaTB: { type: Number, default: 0 },
-    // SoDuVi: { type: Number, default: 0 } // XÓA: Dùng ViGiaoDich của Member
+    SoDienThoai: { type: String, required: false },
+    KyNang: { type: [String], default: [] },
+    ChungChi: { type: [String], default: [] }, // lưu đường dẫn file upload
+    TrangThai: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
+    DiemDanhGiaTB: { type: Number, default: 0 }
 });
 
 module.exports = mongoose.model('Member', MemberSchema);

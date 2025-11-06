@@ -1,5 +1,4 @@
 // server.js
-process.env.NODE_NO_WARNINGS = 1; // Disable deprecation warnings
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
@@ -53,13 +52,6 @@ app.use((req, res, next) => {
     // Use session user first, fallback to req.user from auth middleware
     res.locals.user = req.session?.user || req.user || null;
     
-    // Debug session
-    if (req.session && req.session.user) {
-        console.log('Session user:', req.session.user);
-    }
-    console.log('req.user:', req.user);
-    console.log('res.locals.user:', res.locals.user);
-    
     next();
 });
 
@@ -69,12 +61,7 @@ app.set('layout', 'layout');
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Rate Limiter
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use('/api', limiter);
+
 
 // Khởi tạo kết nối MongoDB và routes
 async function initializeApp() {

@@ -1,0 +1,216 @@
+
+  <div class="container mx-auto px-4 py-8">
+    <!-- Flash Messages -->
+    <% if (locals.success_msg && success_msg.length > 0) { %>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i><%= success_msg %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+    <% if (locals.error_msg && error_msg.length > 0) { %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i><%= error_msg %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+    <% if (locals.error && error.length > 0) { %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i><%= error %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% } %>
+
+    <div class="row">
+      <div class="col-12">
+        <!-- Profile Header -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-body text-center py-5">
+            <div class="profile-avatar mb-3">
+              <i class="fas fa-user-circle fa-5x text-primary"></i>
+            </div>
+            <h2 class="fw-bold mb-2"><%= user.name || user.Ten || 'Người dùng' %></h2>
+            <p class="text-muted mb-3"><%= user.email || user.Email %></p>
+            <div class="d-flex justify-content-center gap-2 mb-3">
+              <span class="badge bg-<%= user.role === 'admin' ? 'danger' : user.role === 'member' ? 'warning' : 'primary' %> px-3 py-2">
+                <i class="fas fa-<%= user.role === 'admin' ? 'crown' : user.role === 'member' ? 'star' : 'user' %> me-1"></i>
+                <%= user.role === 'admin' ? 'Quản trị viên' : user.role === 'member' ? 'Thành viên' : 'Người dùng' %>
+              </span>
+              <span class="badge bg-<%= user.status === 'active' ? 'success' : user.status === 'inactive' ? 'secondary' : 'danger' %> px-3 py-2">
+                <i class="fas fa-circle me-1"></i>
+                <%= user.status === 'active' ? 'Hoạt động' : user.status === 'inactive' ? 'Không hoạt động' : 'Bị cấm' %>
+              </span>
+            </div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+              <i class="fas fa-edit me-2"></i>Chỉnh sửa thông tin
+            </button>
+          </div>
+        </div>
+
+        <!-- Profile Information -->
+        <div class="row">
+          <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+              <div class="card-header bg-light">
+                <h5 class="mb-0">
+                  <i class="fas fa-info-circle me-2 text-primary"></i>Thông tin cá nhân
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="row mb-3">
+                  <div class="col-sm-4 fw-semibold">Họ tên:</div>
+                  <div class="col-sm-8"><%= user.name || user.Ten || 'Chưa cập nhật' %></div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-sm-4 fw-semibold">Email:</div>
+                  <div class="col-sm-8"><%= user.email || user.Email %></div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-sm-4 fw-semibold">Vai trò:</div>
+                  <div class="col-sm-8">
+                    <span class="badge bg-<%= user.role === 'admin' ? 'danger' : user.role === 'member' ? 'warning' : 'primary' %>">
+                      <%= user.role === 'admin' ? 'Quản trị viên' : user.role === 'member' ? 'Thành viên' : 'Người dùng' %>
+                    </span>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-sm-4 fw-semibold">Trạng thái:</div>
+                  <div class="col-sm-8">
+                    <span class="badge bg-<%= user.status === 'active' ? 'success' : user.status === 'inactive' ? 'secondary' : 'danger' %>">
+                      <%= user.status === 'active' ? 'Hoạt động' : user.status === 'inactive' ? 'Không hoạt động' : 'Bị cấm' %>
+                    </span>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-4 fw-semibold">Ngày tham gia:</div>
+                  <div class="col-sm-8">
+                    <%= user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'Không xác định' %>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+              <div class="card-header bg-light">
+                <h5 class="mb-0">
+                  <i class="fas fa-chart-bar me-2 text-success"></i>Thống kê hoạt động
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="row mb-3">
+                  <div class="col-sm-6 fw-semibold">Số dư ví:</div>
+                  <div class="col-sm-6">
+                    <span class="text-success fw-bold">
+                      <%= locals.wallet ? wallet.SoDuHienTai.toLocaleString() : '0' %> VNĐ
+                    </span>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-sm-6 fw-semibold">Tổng ủy thác:</div>
+                  <div class="col-sm-6">
+                    <span class="fw-bold text-primary">
+                      <%= locals.totalCommissions || 0 %>
+                    </span>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-sm-6 fw-semibold">Đã hoàn thành:</div>
+                  <div class="col-sm-6">
+                    <span class="fw-bold text-success">
+                      <%= locals.completedCommissions || 0 %>
+                    </span>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-sm-6 fw-semibold">Đang thực hiện:</div>
+                  <div class="col-sm-6">
+                    <span class="fw-bold text-info">
+                      <%= locals.inProgressCommissions || 0 %>
+                    </span>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-6 fw-semibold">Tổng giao dịch:</div>
+                  <div class="col-sm-6">
+                    <span class="fw-bold text-warning">
+                      <%= locals.totalTransactions || 0 %>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card shadow-sm">
+          <div class="card-header bg-light">
+            <h5 class="mb-0">
+              <i class="fas fa-bolt me-2 text-warning"></i>Hành động nhanh
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-3">
+                <a href="/user/dashboard" class="btn btn-outline-primary w-100">
+                  <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </a>
+              </div>
+              <div class="col-md-3">
+                <a href="/user/wallet" class="btn btn-outline-success w-100">
+                  <i class="fas fa-wallet me-2"></i>Ví của tôi
+                </a>
+              </div>
+              <div class="col-md-3">
+                <a href="/user/commissions" class="btn btn-outline-info w-100">
+                  <i class="fas fa-tasks me-2"></i>Ủy thác
+                </a>
+              </div>
+              <div class="col-md-3">
+                <a href="/user/transactions" class="btn btn-outline-warning w-100">
+                  <i class="fas fa-history me-2"></i>Giao dịch
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editProfileModalLabel">
+            <i class="fas fa-edit me-2"></i>Chỉnh sửa thông tin cá nhân
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form action="/user/profile/update" method="POST">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="name" class="form-label">Họ tên</label>
+              <input type="text" class="form-control" id="name" name="name" value="<%= user.name || user.Ten || '' %>" required>
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" class="form-control" id="email" name="email" value="<%= user.email || user.Email %>" required>
+            </div>
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              Để thay đổi mật khẩu, vui lòng liên hệ quản trị viên hoặc sử dụng chức năng quên mật khẩu.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save me-2"></i>Lưu thay đổi
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
